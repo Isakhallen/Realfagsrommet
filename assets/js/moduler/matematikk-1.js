@@ -280,7 +280,7 @@ live(S){const b=S.p.b,y=Math.pow(b,S.x);return`${tn(b,2)}^{${tn(S.x,2)}}=${tn(y,
 const DATA=(()=>{const r=rng(7),K=320,rr_=.55,N0=8,a=(K-N0)/N0,out=[];for(let t=0;t<=20.01;t+=1.25){const N=K/(1+a*Math.exp(-rr_*t));out.push([t,Math.max(1,N*(1+.07*(r()+r()+r()-1.5)))])}return out})();
 const PTS=(()=>{const r=rng(3),o=[];for(let i=0;i<520;i++){const ang=r()*TAU,rad=Math.sqrt(r());o.push([Math.cos(ang)*rad,Math.sin(ang)*rad])}return o})();
 const Nl=(v,t)=>v.K/(1+(v.K-v.N0)/v.N0*Math.exp(-v.r*t));
-M({id:'ma-logistisk',s:'ma',c:['R1','S2'],title:'Eksponentiell og logistisk vekst',short:'Logistisk vekst',kw:'bæreevne populasjon modell regresjon vekstfart vendepunkt eksponentiell vekst',
+M({id:'ma-logistisk',s:'ma',c:['R1','S2','BI2'],title:'Eksponentiell og logistisk vekst',short:'Logistisk vekst',kw:'bæreevne populasjon modell regresjon vekstfart vendepunkt eksponentiell vekst',
 lead:'Eksponentiell vekst fortsetter for alltid. I virkeligheten blir det trangt, og veksten flater ut mot bæreevnen $K$. Tilpass modellen til målingene.',
 controls:[{id:'K',label:'Bæreevne <i>K</i>',min:50,max:500,step:5,value:220},{id:'r',label:'Vekstrate <i>r</i>',min:.1,max:1.2,step:.01,value:.4},{id:'N0',label:'Startverdi <i>N</i>₀',min:1,max:50,step:1,value:12},{id:'m',type:'seg',label:'Modell',value:'begge',options:[['log','Logistisk'],['eksp','Eksponentiell'],['begge','Begge']]}],
 tex:['N(t)=\\frac{\\cB{K}}{1+a\\,e^{-\\cR{r}t}},\\qquad a=\\frac{K-N_0}{N_0}','N\'(t)=r\\,N\\left(1-\\frac{N}{K}\\right)','\\text{eksponentiell: }N(t)=N_0\\,e^{rt}'],

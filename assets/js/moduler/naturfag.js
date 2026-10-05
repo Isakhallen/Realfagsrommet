@@ -4,7 +4,7 @@
 {
 const SIG=5.67e-8,S0=1361;
 const model=p=>{const Sin=S0/4,abs=Sin*(1-p.alb),Te=Math.pow(abs/SIG,.25),eps=clamp(.771+.05*Math.log2(p.co2/280),0,.98),Ts=Te*Math.pow(2/(2-eps),.25);return{Sin,abs,Te,eps,Ts,up:SIG*Ts**4,back:eps*SIG*Ts**4/2}};
-M({id:'na-drivhus',s:'na',c:['NAT','FY1'],title:'Drivhuseffekten og jordas strålingsbalanse',short:'Drivhuseffekten',kw:'drivhuseffekt klima co2 strålingsbalanse albedo infrarød temperatur global oppvarming klimagass',
+M({id:'na-drivhus',s:'na',c:['NAT','FY1','GEO'],title:'Drivhuseffekten og jordas strålingsbalanse',short:'Drivhuseffekten',kw:'drivhuseffekt klima co2 strålingsbalanse albedo infrarød temperatur global oppvarming klimagass',
 lead:'Sollys varmer bakken. Bakken sender ut infrarød stråling. Drivhusgasser fanger noe av den og sender den tilbake. Mer CO₂ gir en varmere overflate.',
 controls:[{id:'co2',label:'CO₂ i lufta',min:180,max:1200,step:5,value:420,unit:'ppm'},{id:'alb',label:'Albedo (andel reflektert sollys)',min:.1,max:.6,step:.01,value:.3,d:2},{type:'btns',items:[['Førindustriell (280 ppm)',S=>setP('co2',280,S)],['I dag (ca. 420 ppm)',S=>setP('co2',420,S)],['Dobbelt (560 ppm)',S=>setP('co2',560,S)]]}],
 tex:['\\text{inn}=\\frac{S_0}{4}(1-\\alpha)','\\text{ut}=\\sigma T^4','T_{\\text{uten drivhus}}=\\sqrt[4]{\\frac{S_0(1-\\alpha)}{4\\sigma}}\\approx 255\\ \\text{K}'],
@@ -98,7 +98,7 @@ readout(S){const I=ISO[S.p.iso],n=S.at.filter(x=>!x).length;return[['N',n,'gold'
 const pheno=(mode,g)=>{if(mode==='auto')return g.includes('A')?'gul':'grønn';const fem=!g.includes('Y');const n=(g.match(/a/g)||[]).length;if(fem)return n===2?'fargeblind jente':n===1?'bærer (jente)':'normalt fargesyn (jente)';return n?'fargeblind gutt':'normalt fargesyn (gutt)'};
 const parse=(mode,s)=>mode==='auto'?[s[0],s[1]]:s==='XAXA'?['Xᴬ','Xᴬ']:s==='XAXa'?['Xᴬ','Xᵃ']:s==='XaXa'?['Xᵃ','Xᵃ']:s==='XAY'?['Xᴬ','Y']:['Xᵃ','Y'];
 const sortG=(a,b)=>{const o=x=>x==='A'||x==='Xᴬ'?0:x==='a'||x==='Xᵃ'?1:2;return o(a)<=o(b)?a+b:b+a};
-M({id:'na-arv',s:'na',c:['NAT'],title:'Arv og Punnett-kvadrat',short:'Arv',kw:'arv gen allel dominant recessiv genotype fenotype punnett kjønnsbundet fargeblindhet mendel heterozygot homozygot',
+M({id:'na-arv',s:'na',c:['NAT','BI2'],title:'Arv og Punnett-kvadrat',short:'Arv',kw:'arv gen allel dominant recessiv genotype fenotype punnett kjønnsbundet fargeblindhet mendel heterozygot homozygot',
 lead:'Hvert barn får ett allel fra mor og ett fra far. Punnett-kvadratet viser alle mulige kombinasjoner og hvor sannsynlige de er.',
 controls:[{id:'mode',type:'seg',label:'Type arv',value:'auto',options:[['auto','Vanlig (autosomal)'],['kjonn','Kjønnsbundet']]},{id:'m1',type:'seg',label:'Mor',value:'Aa',options:[['AA','AA'],['Aa','Aa'],['aa','aa']],show:S=>S.p.mode==='auto'},{id:'f1',type:'seg',label:'Far',value:'Aa',options:[['AA','AA'],['Aa','Aa'],['aa','aa']],show:S=>S.p.mode==='auto'},{id:'m2',type:'seg',label:'Mor',value:'XAXa',options:[['XAXA','XᴬXᴬ'],['XAXa','XᴬXᵃ'],['XaXa','XᵃXᵃ']],show:S=>S.p.mode==='kjonn'},{id:'f2',type:'seg',label:'Far',value:'XAY',options:[['XAY','XᴬY'],['XaY','XᵃY']],show:S=>S.p.mode==='kjonn'},{type:'btns',items:[['Få 100 barn',S=>{MOD['na-arv'].kids(S,100)}],['Nullstill',S=>{S.cnt={};S.n=0}]]}],
 tex:['P(\\text{aa})=P(\\text{a fra mor})\\cdot P(\\text{a fra far})=\\tfrac12\\cdot\\tfrac12=\\tfrac14'],
@@ -128,7 +128,7 @@ const AA3={F:'Phe',L:'Leu',S:'Ser',Y:'Tyr','*':'Stopp',C:'Cys',W:'Trp',P:'Pro',H
 const cod=c=>AA[B.indexOf(c[0])*16+B.indexOf(c[1])*4+B.indexOf(c[2])];
 const comp={A:'T',T:'A',G:'C',C:'G'};const BC=()=>({A:C.green,T:C.red,U:C.pink,G:C.yellow,C:C.blue});
 function gene(){let s='ATG';for(let i=0;i<7;i++){let c;do{c=[0,1,2].map(()=>'ATGC'[Math.floor(Math.random()*4)]).join('')}while(cod(c.replace(/T/g,'U'))==='*');s+=c}return s+choice(['TAA','TAG','TGA'])}
-M({id:'na-dna',s:'na',c:['NAT'],warm:420,title:'Fra DNA til protein',short:'DNA og proteiner',kw:'dna rna gen protein transkripsjon translasjon kodon aminosyre mutasjon ribosom genteknologi bioteknologi',
+M({id:'na-dna',s:'na',c:['NAT','BI2'],warm:420,title:'Fra DNA til protein',short:'DNA og proteiner',kw:'dna rna gen protein transkripsjon translasjon kodon aminosyre mutasjon ribosom genteknologi bioteknologi',
 lead:'Et gen er en oppskrift. Først kopieres DNA til mRNA (transkripsjon). Så leser ribosomet mRNA tre baser om gangen og setter sammen aminosyrer til et protein (translasjon).',
 controls:[{id:'sp',label:'Fart',min:.3,max:3,step:.1,value:1},{type:'btns',items:[['Nytt gen',S=>MOD['na-dna'].init(S)],['Punktmutasjon',S=>MOD['na-dna'].mut(S)],['Tilbake til originalen',S=>{S.g=S.g0;S.mi=-1;S.mt='';S.tt=0}]]}],
 tex:['\\text{DNA}\\xrightarrow{\\text{transkripsjon}}\\text{mRNA}\\xrightarrow{\\text{translasjon}}\\text{protein}','\\text{A–T, G–C (DNA)},\\qquad \\text{A–U, G–C (RNA)}'],
@@ -151,7 +151,7 @@ readout(S){const m=S.g.replace(/T/g,'U');const aa=[];for(let k=0;k<m.length/3;k+
 }
 
 /* ---------- Smittespredning og vaksiner ---------- */
-M({id:'na-smitte',s:'na',c:['NAT'],title:'Smittespredning og flokkimmunitet',short:'Smittespredning',kw:'smitte epidemi vaksine flokkimmunitet immunforsvar sykdom pandemi sir-modell karantene',
+M({id:'na-smitte',s:'na',c:['NAT','BI1'],title:'Smittespredning og flokkimmunitet',short:'Smittespredning',kw:'smitte epidemi vaksine flokkimmunitet immunforsvar sykdom pandemi sir-modell karantene',
 lead:'Hver prikk er en person. Røde er smittet og kan smitte andre de kommer nær. Når mange nok er vaksinert (grønne), stopper smitten opp: det er flokkimmunitet.',
 controls:[{id:'beta',label:'Smittsomhet',min:.1,max:1,step:.05,value:.6,d:2},{id:'vak',label:'Andel vaksinerte',min:0,max:.95,step:.05,value:0,fmt:v=>nf(v*100,0)+' %'},{id:'ro',label:'Andel som holder seg hjemme',min:0,max:.9,step:.05,value:0,fmt:v=>nf(v*100,0)+' %'},{id:'dur',label:'Sykdomsvarighet',min:2,max:10,step:.5,value:5,unit:'s'},{type:'btns',items:[['Start på nytt',S=>MOD['na-smitte'].init(S)]]}],
 tex:['R_0=\\text{antall nye smittede per syk person}','\\text{flokkimmunitet når andel immune}>1-\\frac{1}{R_0}'],
@@ -171,7 +171,7 @@ readout(S){const c={S:0,I:0,R:0,V:0};S.ag.forEach(a=>c[a.st]++);const N=S.ag.len
 });
 
 /* ---------- Antibiotikaresistens ---------- */
-M({id:'na-resistens',s:'na',c:['NAT'],title:'Antibiotikaresistens',short:'Antibiotikaresistens',kw:'antibiotika resistens bakterier seleksjon evolusjon mutasjon infeksjon helse',
+M({id:'na-resistens',s:'na',c:['NAT','BI1'],title:'Antibiotikaresistens',short:'Antibiotikaresistens',kw:'antibiotika resistens bakterier seleksjon evolusjon mutasjon infeksjon helse',
 lead:'Noen få bakterier tåler antibiotikaen. Når de andre dør, får de resistente plass til å formere seg. Avbryter du kuren for tidlig, kan de resistente ta over.',
 controls:[{id:'len',label:'Lengde på kuren',min:2,max:12,step:1,value:7,unit:'dager'},{id:'stop',type:'check',label:'Slutt halvveis fordi du føler deg frisk',value:false},{type:'btns',items:[['Start antibiotikakur',S=>{S.ab=S.p.stop?S.p.len/2:S.p.len;S.abs=S.tt;S.hist.push([S.tt,null,null,'kur'])}],['Ny bakteriekultur',S=>MOD['na-resistens'].init(S)]]}],
 tex:['\\text{resistent} = \\text{overlever antibiotika}','\\text{seleksjon: de best tilpassede overlever og formerer seg}'],
@@ -189,7 +189,7 @@ readout(S){const s=S.b.filter(b=>b.t==='S').length,r=S.b.length-s;return[['føls
 });
 
 /* ---------- Naturlig utvalg: bjørkemåleren ---------- */
-M({id:'na-evolusjon',s:'na',c:['NAT'],title:'Naturlig utvalg: bjørkemåleren',short:'Naturlig utvalg',kw:'evolusjon naturlig utvalg seleksjon variasjon arv kamuflasje bjørkemåler industrimelanisme tilpasning',
+M({id:'na-evolusjon',s:'na',c:['NAT','BI2'],title:'Naturlig utvalg: bjørkemåleren',short:'Naturlig utvalg',kw:'evolusjon naturlig utvalg seleksjon variasjon arv kamuflasje bjørkemåler industrimelanisme tilpasning',
 lead:'Sommerfuglene varierer i farge, og fargen arves. Fuglene ser lettest de som skiller seg ut fra barken. Over mange generasjoner endrer hele bestanden farge.',
 controls:[{id:'bg',type:'seg',label:'Bark',value:'mork',options:[['lys','Lys bjørkebark'],['mork','Sotet, mørk bark']]},{id:'pr',label:'Hvor godt fuglene ser',min:0,max:1,step:.05,value:.8,d:2},{id:'mu',label:'Variasjon fra mutasjoner',min:0,max:.15,step:.01,value:.05,d:2},{type:'btns',items:[['Ny bestand',S=>MOD['na-evolusjon'].init(S)]]}],
 tex:['\\text{variasjon}+\\text{arv}+\\text{seleksjon}\\Rightarrow\\text{evolusjon}'],
@@ -210,7 +210,7 @@ readout(S){return[['generasjon',S.gen],['gj.snittlig farge',nf(this.avg(S),2)+' 
 /* ---------- Rovdyr og byttedyr ---------- */
 {
 function rk(S,h){const{a,b,e,d}=S.p;const f=(H,L)=>[a*H-b*H*L,e*b*H*L-d*L];const[H,L]=[S.hh,S.ll];const k1=f(H,L),k2=f(H+h/2*k1[0],L+h/2*k1[1]),k3=f(H+h/2*k2[0],L+h/2*k2[1]),k4=f(H+h*k3[0],L+h*k3[1]);S.hh=Math.max(.01,H+h/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]));S.ll=Math.max(.01,L+h/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1]))}
-M({id:'na-okologi',s:'na',c:['NAT'],title:'Rovdyr og byttedyr',short:'Rovdyr og byttedyr',kw:'økologi bestand populasjon rovdyr byttedyr gaupe hare næringskjede bærekraft lotka-volterra økosystem',
+M({id:'na-okologi',s:'na',c:['NAT','BI1','BI2'],title:'Rovdyr og byttedyr',short:'Rovdyr og byttedyr',kw:'økologi bestand populasjon rovdyr byttedyr gaupe hare næringskjede bærekraft lotka-volterra økosystem',
 lead:'Når det er mange harer, får gaupene mye mat og blir flere. Da blir det færre harer, og etter hvert sulter gaupene. Bestandene svinger i takt, med rovdyrene litt etter.',
 controls:[{id:'a',label:'Fødselsrate hos harer',min:.2,max:1.5,step:.05,value:.8,d:2},{id:'b',label:'Hvor effektivt gaupene jakter',min:.005,max:.05,step:.001,value:.02,d:3},{id:'e',label:'Hvor godt gaupene utnytter maten',min:.1,max:.8,step:.05,value:.3,d:2},{id:'d',label:'Dødsrate hos gauper',min:.1,max:1,step:.05,value:.4,d:2},{type:'btns',items:[['Jakt: fjern halvparten av gaupene',S=>{S.ll*=.5;S.ev.push([S.tt,'jakt'])}],['Start på nytt',S=>MOD['na-okologi'].init(S)]]}],
 tex:['H\'=aH-bHL','L\'=e\\,b\\,HL-d\\,L','H^*=\\frac{d}{e\\,b},\\qquad L^*=\\frac{a}{b}'],

@@ -1,7 +1,7 @@
 {
   "name": "Realfagsrommet",
   "short_name": "Realfag",
-  "description": "Interaktive animasjoner for matematikk, fysikk, kjemi og naturfag på Vg1–Vg3.",
+  "description": "Interaktive animasjoner for matematikk, fysikk, kjemi, biologi, naturfag og geografi på Vg1–Vg3.",
   "lang": "nb",
   "start_url": "./",
   "scope": "./",

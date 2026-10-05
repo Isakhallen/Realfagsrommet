@@ -88,11 +88,11 @@ const home = await page.evaluate(() => {
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
   ctx.font = 'italic 500 76px Newsreader, Georgia, serif'; ctx.fillStyle = C.fg; ctx.fillText('Realfagsrommet', x0, 150);
   ctx.font = '400 26px "Atkinson Hyperlegible", sans-serif'; ctx.fillStyle = C.fg2;
-  ctx.fillText(`${MODS.length} interaktive animasjoner i matematikk, fysikk, kjemi og naturfag · Vg1–Vg3`, x0, 200);
-  const subj = [['Matematikk', SUBJ.ma.c], ['Fysikk', SUBJ.fy.c], ['Kjemi', SUBJ.ki.c], ['Naturfag', SUBJ.na.c]]; let x = x0;
+  ctx.fillText(`${MODS.length} interaktive animasjoner i realfagene · Vg1–Vg3`, x0, 200);
+  const subj = [['Matematikk', SUBJ.ma.c], ['Fysikk', SUBJ.fy.c], ['Kjemi', SUBJ.ki.c], ['Biologi', SUBJ.bi.c], ['Naturfag', SUBJ.na.c], ['Geografi', SUBJ.ge.c]]; let x = x0;
   ctx.font = '400 21px "Atkinson Hyperlegible", sans-serif';
-  subj.forEach(([n, col]) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x + 6, 534 - 7, 6, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = C.fg2; ctx.fillText(n, x + 20, 534); x += ctx.measureText(n).width + 52; });
-  ctx.font = '400 19px "JetBrains Mono", monospace'; ctx.fillStyle = C.fg3; ctx.textAlign = 'right'; ctx.fillText('Dra i verdiene. Se hva som skjer.', W - x0, 534);
+  subj.forEach(([n, col]) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x + 6, 534 - 7, 6, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = C.fg2; ctx.fillText(n, x + 20, 534); x += ctx.measureText(n).width + 44; });
+  ctx.font = '400 19px "JetBrains Mono", monospace'; ctx.fillStyle = C.fg3; ctx.textAlign = 'right'; ctx.fillText('Dra i verdiene. Se hva som skjer.', W - x0, 200);
   X = Stage.ctx;
   return c.toDataURL('image/jpeg', 0.88);
 });

@@ -1,6 +1,6 @@
 # Realfagsrommet
 
-Interaktive animasjoner i 3Blue1Brown-stil for matematikk, fysikk, kjemi og naturfag på Vg1–Vg3. Emnene følger kompetansemålene i LK20.
+Interaktive animasjoner i 3Blue1Brown-stil for matematikk, fysikk, kjemi, biologi, naturfag og geografi på Vg1–Vg3. Emnene følger kompetansemålene i LK20.
 
 Nettstedet er helt statisk: bare HTML, CSS, JavaScript, skrifter og bilder. Det trenger ingen database, ingen innlogging og ingen byggesteg for å kjøre. Alt ligger på samme server, så ingen data sendes til Google eller andre.
 
@@ -36,8 +36,8 @@ Gå så til <http://localhost:8000>. Du kan også dobbeltklikke på `index.html`
 Hver animasjon er ett kall til `M({...})` i en av filene i `assets/js/moduler/`. De viktigste feltene:
 
 - `id`: kort kode, for eksempel `fy-kast`. Brukes i lenken.
-- `s`: fag (`ma`, `fy`, `ki` eller `na`).
-- `c`: kurs, for eksempel `['FY2']` eller `['1T','R1']`.
+- `s`: fag (`ma`, `fy`, `ki`, `bi`, `na` eller `ge`).
+- `c`: kurs, for eksempel `['FY2']`, `['1T','R1']`, `['BI1']` eller `['GEO']`.
 - `title`, `lead`, `about`, `tex`, `tasks`: tekst, formler og oppgaver. Formler skrives i TeX mellom `$`-tegn.
 - `controls`: glidebrytere, knapper og avkrysningsbokser.
 - `init`, `update`, `draw`: startverdier, simulering per bilde og tegning.

@@ -1,13 +1,16 @@
 /* ================= App: navigasjon, kontroller, sløyfe ================= */
-const SUBJ={ma:{n:'Matematikk',c:'#58C4DD'},fy:{n:'Fysikk',c:'#F4D345'},ki:{n:'Kjemi',c:'#FC6255'},na:{n:'Naturfag',c:'#83C167'}};
+const SUBJ={ma:{n:'Matematikk',c:'#58C4DD'},fy:{n:'Fysikk',c:'#F4D345'},ki:{n:'Kjemi',c:'#FC6255'},bi:{n:'Biologi',c:'#5CD0B3'},na:{n:'Naturfag',c:'#83C167'},ge:{n:'Geografi',c:'#F0AC5F'}};
 const COURSES={
   '1P':{n:'Matematikk 1P',s:'ma',tr:1},'1T':{n:'Matematikk 1T',s:'ma',tr:1},
   '2P':{n:'Matematikk 2P',s:'ma',tr:2},'R1':{n:'Matematikk R1',s:'ma',tr:2},'S1':{n:'Matematikk S1',s:'ma',tr:2},
   'R2':{n:'Matematikk R2',s:'ma',tr:3},'S2':{n:'Matematikk S2',s:'ma',tr:3},
   'FY1':{n:'Fysikk 1',s:'fy',tr:2},'FY2':{n:'Fysikk 2',s:'fy',tr:3},
   'KJ1':{n:'Kjemi 1',s:'ki',tr:2},'KJ2':{n:'Kjemi 2',s:'ki',tr:3},
-  'NAT':{n:'Naturfag',s:'na',tr:1}};
-const SHORT={FY1:'Fy1',FY2:'Fy2',KJ1:'Kj1',KJ2:'Kj2',NAT:'Nat'};
+  'BI1':{n:'Biologi 1',s:'bi',tr:2},'BI2':{n:'Biologi 2',s:'bi',tr:3},
+  'NAT':{n:'Naturfag',s:'na',tr:1},'GEO':{n:'Geografi',s:'ge',tr:1,trs:[1,2]}};
+const SHORT={FY1:'Fy1',FY2:'Fy2',KJ1:'Kj1',KJ2:'Kj2',BI1:'Bi1',BI2:'Bi2',NAT:'Nat',GEO:'Geo'};
+const trOf=c=>c.trs||[c.tr];
+const vgOf=c=>c.trs?'Vg'+c.trs.join('–'):'Vg'+c.tr;
 const sc=k=>SHORT[k]||k;
 /* Kjører siden som vanlig nettside (index.html har data-site="1") eller som Claude-artefakt? */
 const SITE=document.documentElement.dataset.site==='1';
@@ -27,12 +30,12 @@ const inl=html=>String(html).replace(/\$([^$]+)\$/g,(m,t)=>texHTML(t,false));
 const F={s:null,tr:null,c:null,q:''};
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 function searchText(m){return m._q||(m._q=norm([m.title,m.short||'',m.lead||'',(m.about||[]).join(' '),(m.kw||''),m.c.map(k=>COURSES[k].n+' '+k).join(' ')].join(' ')))}
-function matches(m){if(F.s&&m.s!==F.s&&!m.c.some(k=>COURSES[k].s===F.s))return false;if(F.tr&&!m.c.some(k=>COURSES[k].tr===F.tr))return false;if(F.c&&!m.c.includes(F.c))return false;if(F.q){const q=norm(F.q).split(/\s+/).filter(Boolean);const t=searchText(m);if(!q.every(w=>t.includes(w)))return false}return true}
+function matches(m){if(F.s&&m.s!==F.s&&!m.c.some(k=>COURSES[k].s===F.s))return false;if(F.tr&&!m.c.some(k=>trOf(COURSES[k]).includes(F.tr)))return false;if(F.c&&!m.c.includes(F.c))return false;if(F.q){const q=norm(F.q).split(/\s+/).filter(Boolean);const t=searchText(m);if(!q.every(w=>t.includes(w)))return false}return true}
 
 function buildFilters(){
   const st=$('#subjTabs');st.innerHTML=[['','Alle']].concat(Object.entries(SUBJ).map(([k,v])=>[k,v.n])).map(([k,n])=>`<button type="button" data-s="${k}" aria-pressed="${(F.s||'')===k}">${k?`<span class="sdot" style="--c:${SUBJ[k].c}"></span>`:''}${n}</button>`).join('');
   $('#trinnF').innerHTML=[[0,'Alle'],[1,'Vg1'],[2,'Vg2'],[3,'Vg3']].map(([k,n])=>`<button type="button" class="chip" data-tr="${k}" aria-pressed="${(F.tr||0)===k}">${n}</button>`).join('');
-  const cs=Object.entries(COURSES).filter(([k,v])=>(!F.s||v.s===F.s)&&(!F.tr||v.tr===F.tr));
+  const cs=Object.entries(COURSES).filter(([k,v])=>(!F.s||v.s===F.s)&&(!F.tr||trOf(v).includes(F.tr)));
   $('#courseF').innerHTML=cs.map(([k,v])=>`<button type="button" class="chip" data-c="${k}" aria-pressed="${F.c===k}" title="${v.n}">${sc(k)}</button>`).join('');
 }
 function buildList(){
@@ -51,7 +54,7 @@ function buildGallery(){
 }
 function buildCourseGrid(){
   $('#courseGrid').innerHTML=Object.entries(SUBJ).map(([s,v])=>{const cs=Object.entries(COURSES).filter(([k,c])=>c.s===s).sort((a,b)=>a[1].tr-b[1].tr);const n=MODS.filter(m=>m.s===s).length;
-    return`<div class="cgrp" style="--c:${v.c}"><h3>${v.n}<span>${n} animasjoner</span></h3>`+cs.map(([k,c])=>`<button type="button" class="cbtn" data-c="${k}" aria-pressed="${F.c===k}"><span>${c.n.replace('Matematikk ','')}${c.n.startsWith('Matematikk')?'':''} <span style="color:var(--fg-3)">· Vg${c.tr}</span></span><span class="n">${MODS.filter(m=>m.c.includes(k)).length}</span></button>`).join('')+'</div>'}).join('');
+    return`<div class="cgrp" style="--c:${v.c}"><h3>${v.n}<span>${n} animasjoner</span></h3>`+cs.map(([k,c])=>`<button type="button" class="cbtn" data-c="${k}" aria-pressed="${F.c===k}"><span>${c.n.replace('Matematikk ','')}${c.n.startsWith('Matematikk')?'':''} <span style="color:var(--fg-3)">· ${vgOf(c)}</span></span><span class="n">${MODS.filter(m=>m.c.includes(k)).length}</span></button>`).join('')+'</div>'}).join('');
 }
 function refreshFilters(){buildFilters();buildList();buildGallery();buildCourseGrid()}
 
@@ -119,18 +122,18 @@ function toggleBoard(on){const b=document.body;on=on??!b.classList.contains('boa
 
 /* ---- læreplankart ---- */
 function buildPlan(){
-  $('#plan').innerHTML=PLAN.map(p=>{const c=COURSES[p.k];return`<div class="pcourse" style="--c:${SUBJ[c.s].c}"><h3>${c.n}</h3><div class="meta">VG${c.tr} · ${MODS.filter(m=>m.c.includes(p.k)).length} ANIMASJONER</div>`+p.t.map(([t,ids])=>`<div class="ptopic"><span>${esc(t)}</span><div class="links">${ids.length?ids.filter(id=>MOD[id]).map(id=>`<a href="#${id}">${esc(MOD[id].short||MOD[id].title)}</a>`).join(''):'<span class="none">Ingen animasjon ennå</span>'}</div></div>`).join('')+'</div>'}).join('');
+  $('#plan').innerHTML=PLAN.map(p=>{const c=COURSES[p.k];return`<div class="pcourse" style="--c:${SUBJ[c.s].c}"><h3>${c.n}</h3><div class="meta">${vgOf(c).toUpperCase()} · ${MODS.filter(m=>m.c.includes(p.k)).length} ANIMASJONER</div>`+p.t.map(([t,ids])=>`<div class="ptopic"><span>${esc(t)}</span><div class="links">${ids.length?ids.filter(id=>MOD[id]).map(id=>`<a href="#${id}">${esc(MOD[id].short||MOD[id].title)}</a>`).join(''):'<span class="none">Ingen animasjon ennå</span>'}</div></div>`).join('')+'</div>'}).join('');
 }
 
 /* ---- forside-animasjon: Fourierrekke ---- */
 const Hero={cv:null,ctx:null,W:0,H:0,dpr:1,th:0,buf:[],N:4,Ns:4};
-function drawHero(dt){const h=Hero;if(!h.ctx||!h.W)return;X=h.ctx;const W=h.W,H=h.H;X.setTransform(h.dpr,0,0,h.dpr,0,0);X.fillStyle=C.stage;X.fillRect(0,0,W,H);
+function drawHero(dt){const h=Hero;if(!h.ctx||h.W<40)return;X=h.ctx;const W=h.W,H=h.H;X.setTransform(h.dpr,0,0,h.dpr,0,0);X.fillStyle=C.stage;X.fillRect(0,0,W,H);
   h.th+=dt*(REDUCED?.35:1.1);h.Ns=smooth(h.Ns,h.N,dt,6);
   const cx=W*.24,cy=H*.52,R=Math.min(H*.25,W*.13);let x=cx,y=cy;
   const terms=Math.max(1,Math.round(h.Ns));
   for(let k=0;k<terms;k++){const n=2*k+1,r=R*4/(PI*n);const nx=x+r*Math.cos(n*h.th),ny=y-r*Math.sin(n*h.th);circ(x,y,r,A(C.blue,k?.28:.55),null,1.2);ln(x,y,nx,ny,A(C.fg,.75),1.4);x=nx;y=ny}
   dot(x,y,4.5,C.yellow);
-  const x0=W*.5;h.buf.unshift(y);const maxN=Math.ceil((W-x0-16)/2);if(h.buf.length>maxN)h.buf.length=maxN;
+  const x0=W*.5;h.buf.unshift(y);const maxN=Math.max(1,Math.ceil((W-x0-16)/2));if(h.buf.length>maxN)h.buf.length=maxN;
   ln(x,y,x0,y,A(C.yellow,.5),1.2,[4,5]);
   ln(x0,cy,W-14,cy,A(C.fg,.35),1);ln(x0,cy-R*1.5,x0,cy+R*1.5,A(C.fg,.35),1);
   X.setLineDash([3,6]);X.strokeStyle=A(C.fg,.25);X.lineWidth=1.2;X.beginPath();X.moveTo(x0,cy-R);X.lineTo(W-14,cy-R);X.moveTo(x0,cy+R);X.lineTo(W-14,cy+R);X.stroke();X.setLineDash([]);
@@ -161,10 +164,10 @@ function boot(){
   Hero.cv=$('#heroCv');Hero.ctx=Hero.cv.getContext('2d');new ResizeObserver(()=>{fitCanvas(Hero.cv,Hero.cv.parentElement,Hero);Hero.buf=[]}).observe(Hero.cv.parentElement);
   const hn=$('#heroN');fillPct(null,hn);hn.oninput=()=>{Hero.N=+hn.value;$('#heroNo').textContent=hn.value;fillPct(null,hn)};
   thumbIO='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){thumbIO.unobserve(e.target);thumbQ.push(e.target)}}),{rootMargin:'200px'}):null;
-  $('#heroLede').innerHTML=`${MODS.length} interaktive animasjoner for matematikk, fysikk, kjemi og naturfag fra Vg1 til Vg3. Endre en verdi, se hva som skjer, og les formelen som forklarer det.`;
+  $('#heroLede').innerHTML=`${MODS.length} interaktive animasjoner for matematikk, fysikk, kjemi, biologi, naturfag og geografi fra Vg1 til Vg3. Endre en verdi, se hva som skjer, og les formelen som forklarer det.`;
   refreshFilters();buildPlan();
   $('#subjTabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.s=b.dataset.s||null;F.c=null;refreshFilters();if(!$('#vMod').hidden||!$('#vPlan').hidden){location.hash='hjem'}};
-  $('#trinnF').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.tr=+b.dataset.tr||null;if(F.c&&F.tr&&COURSES[F.c].tr!==F.tr)F.c=null;refreshFilters()};
+  $('#trinnF').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.tr=+b.dataset.tr||null;if(F.c&&F.tr&&!trOf(COURSES[F.c]).includes(F.tr))F.c=null;refreshFilters()};
   $('#courseF').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.c=F.c===b.dataset.c?null:b.dataset.c;refreshFilters()};
   $('#courseGrid').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.c;F.c=F.c===k?null:k;F.s=null;F.tr=null;refreshFilters();$('#galTitle').scrollIntoView({behavior:REDUCED?'auto':'smooth',block:'start'})};
   $('#q').oninput=e=>{F.q=e.target.value.trim();buildList();buildGallery()};
