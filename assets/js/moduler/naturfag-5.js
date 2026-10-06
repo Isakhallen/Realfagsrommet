@@ -1,5 +1,5 @@
 'use strict';
-/* ================= NATURFAG (del 3): karbonforbindelser, karboksylsyrer og konservering ================= */
+/* ================= NATURFAG (del 5): karbonforbindelser, karboksylsyrer og konservering ================= */
 
 /* ---------- Havforsuring ---------- */
 {
