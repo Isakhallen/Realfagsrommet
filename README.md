@@ -13,6 +13,7 @@ Nettstedet er helt statisk: bare HTML, CSS, JavaScript, skrifter og bilder. Det 
 | `assets/js/app.js` | Meny, søk, kontroller, tavlemodus og deling |
 | `assets/js/moduler/*.js` | Animasjonene, sortert etter fag |
 | `assets/js/laereplan.js` | Læreplankartet (kompetansemål og hvilke animasjoner som hører til) |
+| `assets/js/temaer.js` | Temaene (kapitlene) hvert fag er delt inn i på forsiden og i menyen |
 | `assets/css/site.css` | Utseende |
 | `assets/fonter/` | Skrifter (SIL OFL-lisens) |
 | `assets/vendor/katex/` | KaTeX for formler (MIT-lisens) |
@@ -56,7 +57,9 @@ npx playwright install chromium
 node verktoy/lag-bilder.mjs
 ```
 
-Husk å føre opp nye animasjoner i læreplankartet i `assets/js/laereplan.js`.
+Husk å føre opp nye animasjoner i læreplankartet i `assets/js/laereplan.js` og i riktig tema i `assets/js/temaer.js`. En animasjon kan stå i flere temaer. Står den ikke i noe tema, havner den under «Andre emner».
+
+Et tema kan lenkes direkte, for eksempel `#fag/na/karbon` for naturfagtemaet om syrer, baser og karbonforbindelser.
 
 ## Publisere
 

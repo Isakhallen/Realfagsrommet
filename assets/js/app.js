@@ -27,36 +27,72 @@ function texHTML(s,display){if(window.katex){try{return katex.renderToString(s,{
 const inl=html=>String(html).replace(/\$([^$]+)\$/g,(m,t)=>texHTML(t,false));
 
 /* ---- filtre ---- */
-const F={s:null,tr:null,c:null,q:''};
+const F={s:null,tr:null,c:null,t:null,q:''};
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-function searchText(m){return m._q||(m._q=norm([m.title,m.short||'',m.lead||'',(m.about||[]).join(' '),(m.kw||''),m.c.map(k=>COURSES[k].n+' '+k).join(' ')].join(' ')))}
-function matches(m){if(F.s&&m.s!==F.s&&!m.c.some(k=>COURSES[k].s===F.s))return false;if(F.tr&&!m.c.some(k=>trOf(COURSES[k]).includes(F.tr)))return false;if(F.c&&!m.c.includes(F.c))return false;if(F.q){const q=norm(F.q).split(/\s+/).filter(Boolean);const t=searchText(m);if(!q.every(w=>t.includes(w)))return false}return true}
+/* Faget som vises: valgt fag, eller faget til valgt kurs */
+const viewS=()=>F.c?COURSES[F.c].s:F.s;
+const inSubj=(m,s)=>m.s===s||m.c.some(k=>COURSES[k].s===s);
+/* ---- temaer (kapitler) i hvert fag, fra temaer.js ---- */
+const _tm={};
+function temas(s){if(_tm[s])return _tm[s];const L=((typeof TEMA!=='undefined'&&TEMA[s])||[]).map(([id,n,ids])=>({id,n,ids:ids.filter(i=>MOD[i]&&inSubj(MOD[i],s))})).filter(t=>t.ids.length);
+  const used=new Set(L.flatMap(t=>t.ids));const rest=MODS.filter(m=>inSubj(m,s)&&!used.has(m.id)).map(m=>m.id);if(rest.length)L.push({id:'andre',n:'Andre emner',ids:rest});return _tm[s]=L}
+const temaById=(s,id)=>s&&id?temas(s).find(t=>t.id===id)||null:null;
+const temaOf=(m,s)=>temas(s).find(t=>t.ids.includes(m.id));
+/* Hvilket fag og tema en animasjon ble åpnet fra (styrer brødsmuler og forrige/neste) */
+const ctx={s:null,t:null};
+function searchText(m){return m._q||(m._q=norm([m.title,m.short||'',m.lead||'',(m.about||[]).join(' '),(m.kw||''),m.c.map(k=>COURSES[k].n+' '+k).join(' '),Object.keys(SUBJ).filter(s=>inSubj(m,s)).flatMap(s=>temas(s).filter(t=>t.ids.includes(m.id)).map(t=>t.n)).join(' ')].join(' ')))}
+function matches(m,noT){if(F.s&&!inSubj(m,F.s))return false;if(F.tr&&!m.c.some(k=>trOf(COURSES[k]).includes(F.tr)))return false;if(F.c&&!m.c.includes(F.c))return false;
+  if(F.t&&!noT){const t=temaById(viewS(),F.t);if(t&&!t.ids.includes(m.id))return false}
+  if(F.q){const q=norm(F.q).split(/\s+/).filter(Boolean);const t=searchText(m);if(!q.every(w=>t.includes(w)))return false}return true}
+function setF(o){Object.assign(F,o);if(F.t&&!temaById(viewS(),F.t))F.t=null;refreshFilters()}
 
+function temaChips(){const s=viewS();if(!s)return'';const ts=temas(s).map(t=>[t,t.ids.filter(id=>matches(MOD[id],true)).length]).filter(([t,n])=>n);
+  return`<button type="button" class="chip tchip" data-t="" aria-pressed="${!F.t}">Alle temaer</button>`+ts.map(([t,n])=>`<button type="button" class="chip tchip" data-t="${t.id}" aria-pressed="${F.t===t.id}">${esc(t.n)} <span class="n">${n}</span></button>`).join('')}
 function buildFilters(){
   const st=$('#subjTabs');st.innerHTML=[['','Alle']].concat(Object.entries(SUBJ).map(([k,v])=>[k,v.n])).map(([k,n])=>`<button type="button" data-s="${k}" aria-pressed="${(F.s||'')===k}">${k?`<span class="sdot" style="--c:${SUBJ[k].c}"></span>`:''}${n}</button>`).join('');
   $('#trinnF').innerHTML=[[0,'Alle'],[1,'Vg1'],[2,'Vg2'],[3,'Vg3']].map(([k,n])=>`<button type="button" class="chip" data-tr="${k}" aria-pressed="${(F.tr||0)===k}">${n}</button>`).join('');
   const cs=Object.entries(COURSES).filter(([k,v])=>(!F.s||v.s===F.s)&&(!F.tr||trOf(v).includes(F.tr)));
   $('#courseF').innerHTML=cs.map(([k,v])=>`<button type="button" class="chip" data-c="${k}" aria-pressed="${F.c===k}" title="${v.n}">${sc(k)}</button>`).join('');
+  const tc=temaChips();$('#temaBar').innerHTML=tc;$('#temaBar').hidden=!tc;
 }
+/* Menyen: åpne/lukke-valg brukeren har gjort, huskes mens siden er åpen */
+const navOpen={};
 function buildList(){
-  const box=$('#mlist');let html='';
-  for(const s of Object.keys(SUBJ)){const ms=MODS.filter(m=>m.s===s&&matches(m));if(!ms.length)continue;
-    html+=`<div class="mgroup"><h5><span class="sdot" style="--c:${SUBJ[s].c}"></span>${SUBJ[s].n}</h5>`+ms.map(m=>`<a class="mi" href="#${m.id}" data-id="${m.id}"${Stage.mod===m?' aria-current="page"':''}><span>${esc(m.short||m.title)}</span><span class="mc">${m.c.map(sc).join(' · ')}</span></a>`).join('')+'</div>'}
+  const box=$('#mlist'),s0=viewS(),cur=Stage.mod&&Stage.mod.id;
+  const isOpen=(k,def)=>F.q?true:k in navOpen?navOpen[k]:def;
+  const item=(m,s,t)=>`<a class="mi" href="#${m.id}" data-id="${m.id}" data-s="${s}" data-t="${t}"${cur===m.id?' aria-current="page"':''}><span>${esc(m.short||m.title)}</span><span class="mc">${m.c.map(sc).join(' · ')}</span></a>`;
+  const grp=(k,cls,head,inner,open)=>`<details class="${cls}" data-k="${k}"${open?' open':''}><summary>${head}</summary><div class="gi">${inner}</div></details>`;
+  let html='';
+  if(s0){for(const t of temas(s0)){const ms=t.ids.map(id=>MOD[id]).filter(m=>matches(m,true));if(!ms.length)continue;
+      html+=grp(s0+'/'+t.id,'tgroup',`<span>${esc(t.n)}</span><span class="n">${ms.length}</span>`,ms.map(m=>item(m,s0,t.id)).join(''),F.t===t.id||ms.some(m=>m.id===cur)&&(ctx.t?ctx.t===t.id:temaOf(MOD[cur],s0)===t))}}
+  else{for(const s of Object.keys(SUBJ)){const ms=MODS.filter(m=>m.s===s&&matches(m));if(!ms.length)continue;let inner='';
+      for(const t of temas(s)){const tm=ms.filter(m=>temaOf(m,s)===t);if(tm.length)inner+=`<h6>${esc(t.n)}</h6>`+tm.map(m=>item(m,s,t.id)).join('')}
+      html+=grp(s,'mgroup',`<span class="sdot" style="--c:${SUBJ[s].c}"></span><span>${SUBJ[s].n}</span><span class="n">${ms.length}</span>`,inner,ms.some(m=>m.id===cur))}}
   box.innerHTML=html||'<p class="empty">Ingen emner passer søket.</p>';
+  box.querySelectorAll('details').forEach(d=>{d.open=isOpen(d.dataset.k,d.open)});
 }
 function buildGallery(){
-  const g=$('#gallery');const ms=MODS.filter(matches);
-  const title=F.c?COURSES[F.c].n:F.s?SUBJ[F.s].n:'Alle animasjoner';
+  const g=$('#gallery'),s0=viewS(),tt=temaById(s0,F.t);const all=MODS.filter(m=>matches(m));
+  const card=(m,s,t)=>`<a class="card" href="#${m.id}" data-s="${s||''}" data-t="${t||''}" style="--c:${SUBJ[m.s].c}"><div class="th"><canvas width="640" height="400" data-id="${m.id}" aria-hidden="true"></canvas></div><div class="ct">${esc(m.title)}</div><div class="cm"><span class="sdot" style="--c:${SUBJ[m.s].c}"></span>${m.c.map(sc).join(' · ')}</div></a>`;
+  const grid=(ms,s,t)=>`<div class="gallery">${ms.map(m=>card(m,s,t)).join('')}</div>`;
+  const title=tt?tt.n:F.c?COURSES[F.c].n:F.s?SUBJ[F.s].n:'Alle animasjoner';
   $('#galTitle').textContent=title+(F.tr&&!F.c?' · Vg'+F.tr:'');
-  $('#galSub').textContent=ms.length+(ms.length===1?' animasjon':' animasjoner')+(F.q?` som passer «${F.q}»`:'');
-  g.innerHTML=ms.map(m=>`<a class="card" href="#${m.id}" style="--c:${SUBJ[m.s].c}"><div class="th"><canvas width="640" height="400" data-id="${m.id}" aria-hidden="true"></canvas></div><div class="ct">${esc(m.title)}</div><div class="cm"><span class="sdot" style="--c:${SUBJ[m.s].c}"></span>${m.c.map(sc).join(' · ')}</div></a>`).join('')||'<p class="empty">Ingen animasjoner passer. Prøv et annet søkeord eller fjern filteret.</p>';
+  $('#galSub').textContent=(tt?(F.c?COURSES[F.c].n:SUBJ[s0].n)+' · ':'')+all.length+(all.length===1?' animasjon':' animasjoner')+(F.q?` som passer «${F.q}»`:'');
+  let html='';
+  if(tt)html=grid(tt.ids.map(id=>MOD[id]).filter(m=>matches(m)),s0,tt.id);
+  else if(s0){for(const t of temas(s0)){const ms=t.ids.map(id=>MOD[id]).filter(m=>matches(m));if(ms.length)html+=`<section class="gsec"><h3><button type="button" data-t="${t.id}">${esc(t.n)}</button><span>${ms.length}</span></h3>${grid(ms,s0,t.id)}</section>`}}
+  else if(!F.q){for(const s of Object.keys(SUBJ)){const ms=all.filter(m=>m.s===s);if(ms.length)html+=`<section class="gsec" style="--c:${SUBJ[s].c}"><h3><span class="sdot" style="--c:${SUBJ[s].c}"></span><button type="button" data-s="${s}">${SUBJ[s].n}</button><span>${ms.length}</span></h3>${grid(ms,s,'')}</section>`}}
+  else if(all.length)html=grid(all,'','');
+  g.innerHTML=html||'<p class="empty">Ingen animasjoner passer. Prøv et annet søkeord eller fjern filteret.</p>';
   g.querySelectorAll('canvas').forEach(c=>thumbIO&&thumbIO.observe(c));
 }
 function buildCourseGrid(){
   $('#courseGrid').innerHTML=Object.entries(SUBJ).map(([s,v])=>{const cs=Object.entries(COURSES).filter(([k,c])=>c.s===s).sort((a,b)=>a[1].tr-b[1].tr);const n=MODS.filter(m=>m.s===s).length;
-    return`<div class="cgrp" style="--c:${v.c}"><h3>${v.n}<span>${n} animasjoner</span></h3>`+cs.map(([k,c])=>`<button type="button" class="cbtn" data-c="${k}" aria-pressed="${F.c===k}"><span>${c.n.replace('Matematikk ','')}${c.n.startsWith('Matematikk')?'':''} <span style="color:var(--fg-3)">· ${vgOf(c)}</span></span><span class="n">${MODS.filter(m=>m.c.includes(k)).length}</span></button>`).join('')+'</div>'}).join('');
+    return`<div class="cgrp" style="--c:${v.c}"><h3>${v.n}<span>${n} animasjoner</span></h3>`+cs.map(([k,c])=>`<button type="button" class="cbtn" data-c="${k}" aria-pressed="${F.c===k}"><span>${c.n.replace('Matematikk ','')} <span style="color:var(--fg-3)">· ${vgOf(c)}</span></span><span class="n">${MODS.filter(m=>m.c.includes(k)).length}</span></button>`).join('')
+      +`<div class="ctemas"><span>Temaer</span>`+temas(s).filter(t=>t.id!=='andre').map(t=>`<button type="button" class="tlink" data-s="${s}" data-t="${t.id}" aria-pressed="${!F.c&&F.s===s&&F.t===t.id}">${esc(t.n)}</button>`).join('')+'</div></div>'}).join('');
 }
 function refreshFilters(){buildFilters();buildList();buildGallery();buildCourseGrid()}
+function toGallery(){requestAnimationFrame(()=>$('#galTitle').scrollIntoView({behavior:REDUCED?'auto':'smooth',block:'start'}))}
 
 /* ---- miniatyrer ---- */
 let thumbIO=null;const thumbQ=[];
@@ -93,8 +129,11 @@ function setPlayIcon(){$('#bPlay').innerHTML=Stage.play?'<svg width="14" height=
 function openMod(id){
   const m=MOD[id];show('mod');Stage.mod=m;Stage.err=null;Stage.drag=null;Stage.play=!m.paused;setPlayIcon();
   Stage.S=newState(m,Stage.W,Stage.H);if(REDUCED)Stage.S.intro=1;
-  const sj=SUBJ[m.s];
-  $('#crumbs').innerHTML=`<a href="#hjem">Forside</a><span>/</span><span style="color:${sj.c}">${sj.n}</span><span>/</span><span>${m.c.map(k=>COURSES[k].n.replace('Matematikk ','Matte ')).join(' · ')}</span>`;
+  /* Fag og tema animasjonen ble åpnet fra, ellers filteret som er valgt, ellers animasjonens eget fag */
+  let cs=ctx.s&&inSubj(m,ctx.s)?ctx.s:viewS()&&inSubj(m,viewS())?viewS():m.s;
+  let ct=temaById(cs,ctx.s===cs?ctx.t:null);if(!ct||!ct.ids.includes(m.id)){ct=temaById(cs,F.t);if(!ct||!ct.ids.includes(m.id))ct=temaOf(m,cs)}
+  ctx.s=cs;ctx.t=ct&&ct.id;const sj=SUBJ[cs];
+  $('#crumbs').innerHTML=`<a href="#hjem">Forside</a><span>/</span><a href="#fag/${cs}" style="color:${sj.c}">${sj.n}</a>`+(ct?`<span>/</span><a href="#fag/${cs}/${ct.id}">${esc(ct.n)}</a>`:'')+`<span>/</span><span>${m.c.map(k=>COURSES[k].n.replace('Matematikk ','Matte ')).join(' · ')}</span>`;
   $('#mTitle').textContent=m.title;$('#mLead').innerHTML=inl(m.lead||'');
   $('#mAbout').innerHTML=(m.about||[]).map(p=>`<p>${inl(p)}</p>`).join('');
   $('#mTex').innerHTML=(m.tex||[]).map(t=>`<div class="f">${texHTML(t,true)}</div>`).join('')||'<p class="empty">Ingen formler i denne animasjonen.</p>';
@@ -102,20 +141,25 @@ function openMod(id){
   $('#mTasks').innerHTML=(m.tasks||[]).map((t,i)=>`<li class="${done[i]?'done':''}"><input type="checkbox" id="t-${i}"${done[i]?' checked':''}><label for="t-${i}">${inl(t)}</label></li>`).join('');
   $('#mTasks').querySelectorAll('input').forEach((inp,i)=>inp.onchange=()=>{const all=store.get('rfr-tasks-v1',{});const a=all[id]||[];a[i]=inp.checked;all[id]=a;store.set('rfr-tasks-v1',all);inp.parentElement.classList.toggle('done',inp.checked)});
   $('#mCode').textContent=shareURL(id);
-  const i=MODS.indexOf(m),pv=MODS[i-1],nx=MODS[i+1];
-  $('#prevnext').innerHTML=(pv?`<a href="#${pv.id}"><span>Forrige</span><b>${esc(pv.title)}</b></a>`:'')+(nx?`<a href="#${nx.id}"><span>Neste</span><b>${esc(nx.title)}</b></a>`:'');
+  /* Forrige/neste går gjennom temaene i faget, i rekkefølge */
+  const seq=temas(cs).flatMap(t=>t.ids.map(id=>[id,t]));let i=seq.findIndex(([id,t])=>id===m.id&&t===ct);
+  let pv=null,nx=null;for(let j=i-1;j>=0&&!pv;j--)if(seq[j][0]!==m.id)pv=seq[j];for(let j=i+1;j<seq.length&&!nx;j++)if(seq[j][0]!==m.id)nx=seq[j];
+  const pn=(e,lab)=>`<a href="#${e[0]}" data-s="${cs}" data-t="${e[1].id}"><span>${lab}${e[1]!==ct?' · '+esc(e[1].n):''}</span><b>${esc(MOD[e[0]].title)}</b></a>`;
+  $('#prevnext').innerHTML=(pv?pn(pv,'Forrige'):'')+(nx?pn(nx,'Neste'):'');
   const h=$('#hint');h.textContent=m.hint||'';h.hidden=!m.hint;h.classList.remove('gone');clearTimeout(hintT);hintT=setTimeout(hideHint,9000);
   Stage.cv.style.touchAction=m.pick?'none':'auto';
   buildControls();lastRO='';lastLive='';$('#rd').innerHTML='';$('#live').innerHTML='';
   document.querySelectorAll('.mi').forEach(a=>a.toggleAttribute('aria-current',a.dataset.id===id));
   document.querySelectorAll('.mi[aria-current]').forEach(a=>a.setAttribute('aria-current','page'));
+  const ca=document.querySelector(`.mi[data-id="${id}"][data-t="${ctx.t}"]`)||document.querySelector(`.mi[data-id="${id}"]`);if(ca){const d=ca.closest('details');if(d)d.open=true}
   document.title=m.title+' · Realfagsrommet';
   const cv_=Stage.cv;cv_.setAttribute('role','img');cv_.setAttribute('aria-label','Animasjon: '+m.title);
   store.set('rfr-last',id);
 }
 function resetMod(keepParams=true){const m=Stage.mod;if(!m)return;const old=Stage.S;Stage.S=newState(m,Stage.W,Stage.H,keepParams?old:null);Stage.S.intro=1;Stage.S.touched=old.touched;Stage.err=null;if(!keepParams)buildControls()}
 function show(v){$('#vHome').hidden=v!=='home';$('#vMod').hidden=v!=='mod';$('#vPlan').hidden=v!=='plan';if(v!=='mod'){Stage.mod=null;document.title=v==='plan'?'Læreplankart · Realfagsrommet':HOME_TITLE;document.querySelectorAll('.mi[aria-current]').forEach(a=>a.removeAttribute('aria-current'));if(document.body.classList.contains('board'))toggleBoard(false)}document.body.classList.remove('nav-open');$('#navBtn').setAttribute('aria-expanded','false');window.scrollTo(0,0)}
-function route(){const h=decodeURIComponent(location.hash.slice(1));if(MOD[h])openMod(h);else if(h==='laereplan'){show('plan')}else show('home')}
+function route(){const h=decodeURIComponent(location.hash.slice(1));if(MOD[h])openMod(h);else if(h==='laereplan'){show('plan')}
+  else{const f=h.match(/^fag\/(\w+)(?:\/([\w-]+))?$/);show('home');if(f&&SUBJ[f[1]]){setF({s:f[1],c:null,tr:null,t:f[2]||null});toGallery()}}}
 
 /* ---- tavlemodus ---- */
 function toggleBoard(on){const b=document.body;on=on??!b.classList.contains('board');b.classList.toggle('board',on);try{if(on&&document.documentElement.requestFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});if(!on&&document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}}
@@ -166,10 +210,16 @@ function boot(){
   thumbIO='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){thumbIO.unobserve(e.target);thumbQ.push(e.target)}}),{rootMargin:'200px'}):null;
   $('#heroLede').innerHTML=`${MODS.length} interaktive animasjoner for matematikk, fysikk, kjemi, biologi, naturfag og geografi fra Vg1 til Vg3. Endre en verdi, se hva som skjer, og les formelen som forklarer det.`;
   refreshFilters();buildPlan();
-  $('#subjTabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.s=b.dataset.s||null;F.c=null;refreshFilters();if(!$('#vMod').hidden||!$('#vPlan').hidden){location.hash='hjem'}};
-  $('#trinnF').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.tr=+b.dataset.tr||null;if(F.c&&F.tr&&!trOf(COURSES[F.c]).includes(F.tr))F.c=null;refreshFilters()};
-  $('#courseF').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.c=F.c===b.dataset.c?null:b.dataset.c;refreshFilters()};
-  $('#courseGrid').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.c;F.c=F.c===k?null:k;F.s=null;F.tr=null;refreshFilters();$('#galTitle').scrollIntoView({behavior:REDUCED?'auto':'smooth',block:'start'})};
+  $('#subjTabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;setF({s:b.dataset.s||null,c:null,t:null});if(!$('#vMod').hidden||!$('#vPlan').hidden){location.hash='hjem'}};
+  $('#trinnF').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.tr=+b.dataset.tr||null;if(F.c&&F.tr&&!trOf(COURSES[F.c]).includes(F.tr))F.c=null;setF({})};
+  $('#courseF').onclick=e=>{const b=e.target.closest('button');if(!b)return;setF({c:F.c===b.dataset.c?null:b.dataset.c})};
+  const temaClick=e=>{const b=e.target.closest('button[data-t]');if(!b)return;setF({t:b.dataset.t===F.t?null:b.dataset.t||null})};
+  $('#temaBar').onclick=temaClick;
+  $('#gallery').addEventListener('click',e=>{const b=e.target.closest('h3 button');if(!b)return;if(b.dataset.s)setF({s:b.dataset.s,c:null,t:null});else setF({t:b.dataset.t});toGallery()});
+  $('#courseGrid').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.t){const on=!F.c&&F.s===b.dataset.s&&F.t===b.dataset.t;setF(on?{t:null}:{s:b.dataset.s,c:null,tr:null,t:b.dataset.t})}else{const k=b.dataset.c;setF({c:F.c===k?null:k,s:null,tr:null})}toGallery()};
+  /* Husk hvilket fag og tema en lenke til en animasjon kom fra */
+  document.addEventListener('click',e=>{const a=e.target.closest('a[href^="#"]');if(!a)return;const id=a.getAttribute('href').slice(1);if(!MOD[id])return;ctx.s=a.dataset.s||null;ctx.t=a.dataset.t||null},true);
+  $('#mlist').addEventListener('click',e=>{const sm=e.target.closest('summary');if(sm){const d=sm.parentElement;navOpen[d.dataset.k]=!d.open}});
   $('#q').oninput=e=>{F.q=e.target.value.trim();buildList();buildGallery()};
   $('#q').onkeydown=e=>{if(e.key==='Enter'){const m=MODS.find(matches);if(m)location.hash=m.id}};
   $('#navBtn').onclick=()=>{const o=document.body.classList.toggle('nav-open');$('#navBtn').setAttribute('aria-expanded',o)};
