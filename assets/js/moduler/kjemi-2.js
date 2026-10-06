@@ -161,7 +161,7 @@ const RXN={alkan:n=>({t:'Substitusjon',r:'+ Cl₂',p:{n,sub:[{c:0,g:'Cl',p:'L'}]
  keton:n=>({t:'Reduksjon (addisjon av H₂)',r:'+ H₂',p:{n,sub:[{c:1,g:'OH',p:'U'}]},pn:PRE[n-1]+'an-2-ol',side:''}),
  syre:n=>({t:'Kondensasjon (forestring)',r:'+ CH₃OH',p:{n,sub:[{c:0,g:'O',p:'U'},{c:0,g:'OCH3',p:'L'}]},pn:'metyl'+PRE[n-1]+'anoat',side:'+ H₂O',note:'Den motsatte reaksjonen, der esteren spaltes med vann, er hydrolyse.'}),
  amin:n=>({t:'Syre–base',r:'',p:null,pn:'',side:'',note:'Aminer er baser: R–NH₂ + H₂O ⇌ R–NH₃⁺ + OH⁻'})};
-M({id:'ki-organisk',s:'ki',c:['KJ1','KJ2'],title:'Organiske stoffer, navn og reaksjonstyper',short:'Organisk kjemi',kw:'organisk kjemi alkan alken alkohol aldehyd keton karboksylsyre amin ester navnsetting funksjonell gruppe homolog rekke kokepunkt addisjon eliminasjon substitusjon hydrolyse',
+M({id:'ki-organisk',s:'ki',c:['KJ1','KJ2','NAT'],title:'Organiske stoffer, navn og reaksjonstyper',short:'Organisk kjemi',kw:'organisk kjemi alkan alken alkohol aldehyd keton karboksylsyre amin ester navnsetting funksjonell gruppe homolog rekke kokepunkt addisjon eliminasjon substitusjon hydrolyse',
 lead:'Organiske stoffer er bygd av karbonkjeder. Den funksjonelle gruppen bestemmer egenskapene og endelsen i navnet. Se strukturformelen, navnet og hvordan kokepunktet endrer seg med kjedelengden.',
 controls:[{id:'g',type:'seg',label:'Stoffklasse',value:'alkohol',options:Object.entries(GR)},{id:'n',label:'Antall karbonatomer',min:1,max:8,step:1,value:2},{id:'rx',type:'check',label:'Vis en typisk reaksjon',value:false}],
 tex:['\\text{alkaner: }\\text{C}_n\\text{H}_{2n+2}','\\text{alkener: }\\text{C}_n\\text{H}_{2n}','\\text{alkoholer: }\\text{C}_n\\text{H}_{2n+1}\\text{OH}'],
