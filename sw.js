@@ -1,6 +1,6 @@
 // Generert av verktoy/bygg.mjs – ikke rediger for hånd.
 // Offline-støtte: henter alltid fra nettet først, og bruker lagret kopi bare når nettet svikter.
-const VERSION = 'rfr-fda8cae807';
+const VERSION = 'rfr-4272a206dc';
 const PRECACHE = ["./",
   "index.html",
   "favicon.svg",
@@ -35,6 +35,7 @@ const PRECACHE = ["./",
   "assets/js/moduler/matematikk-2.js",
   "assets/js/moduler/matematikk-3.js",
   "assets/js/moduler/matematikk-4.js",
+  "assets/js/moduler/matematikk-5.js",
   "assets/js/moduler/naturfag-2.js",
   "assets/js/moduler/naturfag-3.js",
   "assets/js/moduler/naturfag-4.js",
