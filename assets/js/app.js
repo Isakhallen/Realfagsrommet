@@ -103,6 +103,12 @@ let ctlEls={};
 const fmtCtl=(c,v)=>c.fmt?c.fmt(v):nf(v,c.d??decOf(c.step||1))+(c.unit?' '+c.unit:'');
 const toSl=(c,v)=>c.log?Math.round(1000*Math.log(v/c.min)/Math.log(c.max/c.min)):v;
 const fromSl=(c,r)=>c.log?c.min*Math.pow(c.max/c.min,r/1000):+r;
+const rawCtl=(c,v)=>c.log?nfs(v,4):nf(v,c.d??decOf(c.step||1));
+function msgCtl(el,txt){let m=el.querySelector('.cmsg');if(!m){m=document.createElement('small');m.className='cmsg';m.setAttribute('role','status');el.append(m)}m.textContent=txt;m.hidden=!txt;clearTimeout(el._mt);if(txt)el._mt=setTimeout(()=>{m.hidden=true},7000)}
+function typedCtl(c,el,src){const v0=parseNum(src,c.unit);if(!isFinite(v0)){msgCtl(el,'Skriv et tall, for eksempel 9,81 eller 1,5·10^-3.');return}
+  const st=c.step||1;let v=!c.log&&Number.isInteger(st)&&st>=1?Math.round(v0/st)*st:v0;v=clamp(v,c.min,c.max);const u=c.unit?' '+c.unit:'';
+  msgCtl(el,v0<c.min||v0>c.max?`Må være mellom ${rawCtl(c,c.min)} og ${rawCtl(c,c.max)}${u} her. Satt til ${rawCtl(c,v)}${u}.`:v!==v0?`Rundet av til ${rawCtl(c,v)}${u}.`:'');
+  changeP(c,v);const r=el.querySelector('input[type=range]');r.value=toSl(c,v);fillPct(c,r)}
 function fillPct(c,inp){const t=(inp.value-inp.min)/((inp.max-inp.min)||1);inp.style.setProperty('--fill',(t*100).toFixed(1)+'%')}
 function buildControls(){
   const box=$('#ctrls');box.textContent='';ctlEls={};const m=Stage.mod,S=Stage.S;
@@ -113,13 +119,25 @@ function buildControls(){
       el.querySelector('select').onchange=e=>{const o=c.options.find(o=>String(o[0])===e.target.value);changeP(c,o[0])}}
     else if(c.type==='check'){el=document.createElement('label');el.className='ctl chk';el.innerHTML=`<input type="checkbox" id="${cid}"${S.p[c.id]?' checked':''}><span>${c.label}</span>`;el.querySelector('input').onchange=e=>changeP(c,e.target.checked)}
     else if(c.type==='btns'){el.className='ctl btns';c.items.forEach(([n,f])=>{const b=document.createElement('button');b.type='button';b.innerHTML=n;b.onclick=()=>{Stage.S.touched=true;hideHint();f(Stage.S);refreshShow()};el.append(b)})}
-    else{el.className='ctl';el.innerHTML=`<label for="${cid}">${c.label}</label><output for="${cid}">${fmtCtl(c,S.p[c.id])}</output><input type="range" id="${cid}" min="${c.log?0:c.min}" max="${c.log?1000:c.max}" step="${c.log?1:c.step||1}" value="${toSl(c,S.p[c.id])}">`;
-      const inp=el.querySelector('input');fillPct(c,inp);inp.oninput=()=>{fillPct(c,inp);changeP(c,fromSl(c,inp.value))}}
+    else if(c.type==='data'){/* egne tall eller tallpar, f.eks. datasett */el.className='ctl data';el.innerHTML=`<label for="${cid}">${c.label}</label><textarea id="${cid}" rows="${c.rows||2}" spellcheck="false" placeholder="${esc(c.ph||'')}"></textarea><button type="button" class="apply">${c.btn||'Bruk tallene'}</button>${c.help?`<small class="chelp">${c.help}</small>`:''}`;
+      const ta=el.querySelector('textarea');ta.value=el._last=c.get(S);
+      const apply=()=>{let err;try{err=c.set(Stage.S,ta.value)}catch(e){err=e.message}msgCtl(el,err||'');if(!err){Stage.S.touched=true;hideHint();ta.value=el._last=c.get(Stage.S);refreshShow()}};
+      el.querySelector('button').onclick=apply;ta.onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();apply()}}}
+    else if(c.type==='func'){/* egen funksjon f(x) */el.className='ctl func';el.innerHTML=`<label for="${cid}">${c.label}</label><div class="fxrow"><span>${c.pre||'f(x) ='}</span><input id="${cid}" type="text" spellcheck="false" autocomplete="off" autocapitalize="off"><button type="button" class="apply">Tegn</button></div>${c.help?`<small class="chelp">${c.help}</small>`:''}`;
+      const inp=el.querySelector('input');inp.value=c.get(S);
+      const apply=()=>{let err;try{err=c.set(Stage.S,parseFx(inp.value),inp.value)}catch(e){err=e.message}msgCtl(el,err||'');if(!err){Stage.S.touched=true;hideHint()}};
+      el.querySelector('button').onclick=apply;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();apply()}}}
+    else{el.className='ctl';el.innerHTML=`<label for="${cid}">${c.label}</label><input class="num" type="text" inputmode="decimal" spellcheck="false" autocomplete="off" aria-label="Skriv inn verdi: ${esc(c.label.replace(/<[^>]+>/g,''))}" title="Klikk og skriv inn en verdi" value="${esc(fmtCtl(c,S.p[c.id]))}"><input type="range" id="${cid}" min="${c.log?0:c.min}" max="${c.log?1000:c.max}" step="${c.log?1:c.step||1}" value="${toSl(c,S.p[c.id])}">`;
+      const inp=el.querySelector('input[type=range]'),num=el.querySelector('.num');fillPct(c,inp);inp.oninput=()=>{fillPct(c,inp);changeP(c,fromSl(c,inp.value))};
+      /* tallet ved glidebryteren kan skrives inn direkte */
+      num.onfocus=()=>{num.value=rawCtl(c,Stage.S.p[c.id]);num.select()};
+      num.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();num.blur()}else if(e.key==='Escape'){num.dataset.esc=1;num.blur()}};
+      num.onblur=()=>{if(!num.dataset.esc&&num.value.trim()!==rawCtl(c,Stage.S.p[c.id]))typedCtl(c,el,num.value);delete num.dataset.esc;num.value=fmtCtl(c,Stage.S.p[c.id])}}
     el._c=c;box.append(el);if(c.id)ctlEls[c.id]=el});
   refreshShow();
 }
-function changeP(c,v){const S=Stage.S;S.p[c.id]=v;S.touched=true;hideHint();const el=ctlEls[c.id];if(el){if(c.type==='seg')el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)));else if(!c.type){el.querySelector('output').textContent=fmtCtl(c,v)}}if(c.snap)S.v[c.id]=v;if(Stage.mod.change)Stage.mod.change(S,c.id);refreshShow()}
-function syncCtl(id){const el=ctlEls[id];if(!el)return;const c=el._c,v=Stage.S.p[id];if(c.type==='seg')el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)));else if(c.type==='sel')el.querySelector('select').value=v;else if(c.type==='check')el.querySelector('input').checked=!!v;else if(!c.type){const inp=el.querySelector('input');inp.value=toSl(c,v);fillPct(c,inp);el.querySelector('output').textContent=fmtCtl(c,v)}refreshShow()}
+function changeP(c,v){const S=Stage.S;S.p[c.id]=v;S.touched=true;hideHint();const el=ctlEls[c.id];if(el){if(c.type==='seg')el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)));else if(!c.type){const n=el.querySelector('.num');if(document.activeElement!==n)n.value=fmtCtl(c,v)}}if(c.snap)S.v[c.id]=v;if(Stage.mod.change)Stage.mod.change(S,c.id);refreshShow()}
+function syncCtl(id){const el=ctlEls[id];if(!el)return;const c=el._c,v=Stage.S.p[id];if(c.type==='seg')el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)));else if(c.type==='sel')el.querySelector('select').value=v;else if(c.type==='check')el.querySelector('input').checked=!!v;else if(!c.type){const inp=el.querySelector('input[type=range]');inp.value=toSl(c,v);fillPct(c,inp);const n=el.querySelector('.num');if(document.activeElement!==n)n.value=fmtCtl(c,v)}refreshShow()}
 function refreshShow(){for(const el of $('#ctrls').children){const c=el._c;if(c&&c.show)el.hidden=!c.show(Stage.S)}}
 
 /* ---- modulvisning ---- */
@@ -194,7 +212,7 @@ function tick(ts){requestAnimationFrame(tick);let dt=(ts-(Stage.last||ts))/1000;
     S.intro=Math.min(1,S.intro+dt/1.1);INTRO=REDUCED?1:ease(S.intro);
     if(Stage.play&&m.update){S.t+=dt;try{m.update(S,dt)}catch(e){if(!Stage.err){Stage.err=e;console.error(m.id,e)}}}else if(Stage.play)S.t+=dt;
     render(Stage.ctx,S,m,Stage.W,Stage.H,Stage.dpr);INTRO=1;
-    if(ts-roT>110){roT=ts;try{const r=m.readout?m.readout(S):[];const html=r.map(([k,v,c])=>`<div class="ro"><span class="k"${c?` style="color:${C[c]||c}"`:''}>${k}</span><span>${v}</span></div>`).join('');if(html!==lastRO){$('#rd').innerHTML=html;lastRO=html}const lv=m.live?m.live(S):'';if(lv!==lastLive){$('#live').innerHTML=lv?texHTML(lv,true):'';lastLive=lv}}catch(e){}}
+    if(ts-roT>110){roT=ts;try{const r=m.readout?m.readout(S):[];const html=r.map(([k,v,c])=>`<div class="ro"><span class="k"${c?` style="color:${C[c]||c}"`:''}>${k}</span><span>${v}</span></div>`).join('');if(html!==lastRO){$('#rd').innerHTML=html;lastRO=html}for(const el of $('#ctrls').children){const c=el._c;if(c&&c.type==='data'){const g=c.get(S),ta=el.querySelector('textarea');if(g!==el._last&&document.activeElement!==ta){ta.value=el._last=g}}}const lv=m.live?m.live(S):'';if(lv!==lastLive){$('#live').innerHTML=lv?texHTML(lv,true):'';lastLive=lv}}catch(e){}}
   }
   if(!$('#vHome').hidden){drawHero(dt);for(let i=0;i<2&&thumbQ.length;i++)renderThumb(thumbQ.shift())}
 }

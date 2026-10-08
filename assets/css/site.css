@@ -124,7 +124,7 @@ main{min-width:0;padding-block:24px 64px}
 .card:hover .th{border-color:var(--c)}
 .card .ct{font:500 1.06rem/1.25 var(--f-display)}
 .card .cm{display:flex;gap:8px;align-items:center;font:11.5px/1 var(--f-mono);color:var(--fg-3)}
-.teach{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;margin-top:10px}
+.teach{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;margin-top:10px}
 .teach div{min-width:0}
 .teach h3{font:500 1.15rem/1.2 var(--f-display);margin:0 0 6px}
 .teach p{margin:0;color:var(--fg-2);font-size:14.5px;max-width:48ch}
@@ -156,6 +156,20 @@ kbd{font:12px var(--f-mono);border:1px solid var(--line-2);border-bottom-width:2
 .ctl>label i,.ctl>.lab i{font-family:var(--f-display);font-size:16px;color:var(--fg)}
 .ctl output{font:13px var(--f-mono);font-variant-numeric:tabular-nums;color:var(--fg)}
 .ctl input[type=range]{grid-column:1/-1}
+.ctl .num{width:9.5em;text-align:right;background:transparent;border:0;border-bottom:1px dashed var(--line-2);border-radius:0;padding:1px 2px;font:13px var(--f-mono);font-variant-numeric:tabular-nums;color:var(--fg);cursor:text}
+.ctl .num:hover{border-bottom-color:var(--fg-3)}
+.ctl .num:focus{outline:none;background:var(--bg);border:1px solid var(--yellow);border-radius:4px;padding:3px 6px}
+.cmsg{grid-column:1/-1;display:block;color:var(--gold);font-size:12.5px;line-height:1.35;margin-top:2px}
+.chelp{grid-column:1/-1;display:block;color:var(--fg-3);font-size:12px;line-height:1.4;margin-top:4px}
+.ctl.data,.ctl.func{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.ctl.data textarea{width:100%;resize:vertical;min-height:52px;background:var(--bg);border:1px solid var(--line-2);border-radius:4px;padding:7px 8px;font:13px/1.45 var(--f-mono);color:var(--fg)}
+.ctl.data textarea:focus,.fxrow input:focus{outline:none;border-color:var(--yellow)}
+.ctl .apply{align-self:flex-start;border:1px solid var(--line-2);background:var(--bg-3);padding:6px 11px;border-radius:5px;cursor:pointer;font-size:13.5px}
+.ctl .apply:hover{border-color:var(--fg-3)}
+.fxrow{display:flex;align-items:center;gap:6px}
+.fxrow span{font:italic 16px var(--f-display);color:var(--fg-2);white-space:nowrap}
+.fxrow input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line-2);border-radius:4px;padding:6px 8px;font:13.5px var(--f-mono);color:var(--fg)}
+.fxrow .apply{align-self:auto}
 .ctl .seg,.ctl select{grid-column:1/-1}
 .seg{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .seg button{padding:5px 9px;border:1px solid var(--line-2);background:transparent;border-radius:4px;font-size:13.5px;cursor:pointer;color:var(--fg-2);line-height:1.25}
@@ -230,7 +244,7 @@ body.board .stage{aspect-ratio:auto;height:calc(100vh - 150px);max-height:none}
 @media (max-width:1240px){
   .work{grid-template-columns:minmax(0,1fr) 290px}
   .notes{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-  .teach{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .teach{grid-template-columns:repeat(3,minmax(0,1fr))}
   .notes .about{grid-column:1/-1}
 }
 @media (max-width:1060px){

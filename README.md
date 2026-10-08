@@ -40,7 +40,9 @@ Hver animasjon er ett kall til `M({...})` i en av filene i `assets/js/moduler/`.
 - `s`: fag (`ma`, `fy`, `ki`, `bi`, `na` eller `ge`).
 - `c`: kurs, for eksempel `['FY2']`, `['1T','R1']`, `['BI1']` eller `['GEO']`.
 - `title`, `lead`, `about`, `tex`, `tasks`: tekst, formler og oppgaver. Formler skrives i TeX mellom `$`-tegn.
-- `controls`: glidebrytere, knapper og avkrysningsbokser.
+- `controls`: glidebrytere, knapper og avkrysningsbokser. Tallet ved hver glidebryter kan skrives inn direkte. To typer felt lar elevene skrive inn egne ting:
+  - `{type:'data', label, get(S), set(S, tekst)}`: egne tall eller tallpar. `set` returnerer en feilmelding som tekst, eller `null` når alt gikk bra. Bruk `parseNums(tekst)` for å lese tallene.
+  - `{type:'func', label, get(), set(S, f, tekst)}`: egen funksjon. Teksten tolkes trygt med `parseFx` i `core.js` (ingen `eval`).
 - `init`, `update`, `draw`: startverdier, simulering per bilde og tegning.
 
 Når du har lagt til eller endret en animasjon, kjør dette fra denne mappen (krever [Node.js](https://nodejs.org) 18 eller nyere):

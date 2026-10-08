@@ -1,17 +1,23 @@
 /* ================= MATEMATIKK (del 3) ================= */
 
+/* felles for animasjonene der eleven kan skrive en egen funksjon */
+const FXHELP='Eksempler: x^3 - 2x, 2sin(x), e^(x/2), ln(x+4), sqrt(x). Bruk ^ for potens og komma som desimaltegn.';
+function autoY(f,a,b){const v=[];for(let i=0;i<=200;i++){const y=f(a+(b-a)*i/200);if(isFinite(y))v.push(y)}v.sort((p,q)=>p-q);if(!v.length)return[-1,5];let lo=v[Math.floor(v.length*.02)],hi=v[Math.ceil(v.length*.98)-1];lo=Math.min(lo,0);hi=Math.max(hi,0);const e=Math.max((hi-lo)*.12,.5);return[lo-e,hi+e]}
+const okOn=(f,a,b)=>{let n=0;for(let i=0;i<=20;i++)if(isFinite(f(a+(b-a)*i/20)))n++;return n>=15};
+
 /* ---------- 20. Riemannsummer ---------- */
 {
 const RF={b:[x=>2+Math.sin(1.3*x),'2 + sin(1,3x)'],p:[x=>.12*x**3-.9*x*x+1.5*x+1.2,'0,12x³ − 0,9x² + 1,5x + 1,2'],e:[x=>Math.exp(x/3),'e^(x/3)'],l:[x=>2.5-.6*x,'2,5 − 0,6x']};
+let FXR='x^2/4 - x + 2';RF.egen=[parseFx(FXR),FXR];
 function rsum(f,a,b,n,m){const d=(b-a)/n;let s=0;for(let i=0;i<n;i++){const x0=a+i*d;s+=(m==='tr'?(f(x0)+f(x0+d))/2:f(m==='v'?x0:m==='h'?x0+d:x0+d/2))*d}return s}
 M({id:'ma-riemann',s:'ma',c:['R2','S2'],title:'Integralet som grense av summer',short:'Riemannsummer',kw:'integral bestemt integral areal rektangler trapesmetoden numerisk integrasjon sum grenseverdi',
 lead:'Vi tilnærmer arealet under grafen med rektangler. Jo flere og smalere rektangler, jo nærmere kommer summen det bestemte integralet.',
-controls:[{id:'f',type:'seg',label:'Funksjon',value:'b',options:[['b','2 + sin 1,3x'],['p','Polynom'],['e','e^(x/3)'],['l','2,5 − 0,6x']]},{id:'a',label:'Nedre grense <i>a</i>',min:0,max:6.5,step:.1,value:.5},{id:'b',label:'Øvre grense <i>b</i>',min:.5,max:7,step:.1,value:6},{id:'n',label:'Antall rektangler <i>n</i>',min:1,max:80,step:1,value:6},{id:'m',type:'seg',label:'Metode',value:'v',options:[['v','Venstre'],['h','Høyre'],['mid','Midtpunkt'],['tr','Trapes']]},{type:'btns',items:[['La n → 80',S=>{S.anim={t:0,n0:S.p.n}}]]}],
+controls:[{id:'f',type:'seg',label:'Funksjon',value:'b',options:[['b','2 + sin 1,3x'],['p','Polynom'],['e','e^(x/3)'],['l','2,5 − 0,6x'],['egen','Egen f(x)']]},{type:'func',label:'Skriv din egen funksjon',show:S=>S.p.f==='egen',get:()=>FXR,help:FXHELP,set(S,f,src){if(!okOn(f,0,7))return'Funksjonen må være definert mellom x = 0 og x = 7.';FXR=src;RF.egen=[f,src];return null}},{id:'a',label:'Nedre grense <i>a</i>',min:0,max:6.5,step:.1,value:.5},{id:'b',label:'Øvre grense <i>b</i>',min:.5,max:7,step:.1,value:6},{id:'n',label:'Antall rektangler <i>n</i>',min:1,max:80,step:1,value:6},{id:'m',type:'seg',label:'Metode',value:'v',options:[['v','Venstre'],['h','Høyre'],['mid','Midtpunkt'],['tr','Trapes']]},{type:'btns',items:[['La n → 80',S=>{S.anim={t:0,n0:S.p.n}}]]}],
 tex:['\\int_a^b f(x)\\,dx=\\lim_{n\\to\\infty}\\sum_{i=1}^{n}f(x_i)\\,\\Delta x','\\Delta x=\\frac{b-a}{n}','\\text{Trapes: }\\sum\\frac{f(x_{i-1})+f(x_i)}{2}\\,\\Delta x'],
 about:['Hvert rektangel har bredde $\\Delta x$ og høyde $f(x_i)$, der $x_i$ er venstre kant, høyre kant eller midtpunktet i intervallet.','Røde rektangler ligger under $x$-aksen og teller negativt. Integralet er derfor ikke alltid det samme som arealet.','Trapesmetoden og midtpunktsmetoden er mye mer nøyaktige enn venstre og høyre sum. Det er slike metoder datamaskiner bruker til numerisk integrasjon.'],
 tasks:['Med venstre sum: er summen for stor eller for liten når grafen stiger? Forklar med figuren.','Hvor mange rektangler trenger du for at feilen skal bli under 0,01 med midtpunktsmetoden?','Velg den lineære funksjonen. Hvorfor gir trapesmetoden nøyaktig svar?','Skriv et lite program som regner ut en venstre sum. Sammenlign med tallet her.'],
 update(S,dt){if(S.anim){S.anim.t+=dt/3;const n=Math.round(S.anim.n0+(80-S.anim.n0)*ease(S.anim.t));if(n!==S.p.n){S.p.n=n;if(S===Stage.S)syncCtl('n')}if(S.anim.t>=1)S.anim=null}},
-draw(S){const f=RF[S.p.f][0],v=S.v,a=Math.min(v.a,v.b),b=Math.max(v.a,v.b),n=Math.round(S.p.n),m=S.p.m;const P=Plane(-.5,7.3,-2.4,6.6,pad(S,28));P.grid(1);P.axes({xs:1,ys:1,xl:'x',yl:'y'});
+draw(S){const f=RF[S.p.f][0],v=S.v,a=Math.min(v.a,v.b),b=Math.max(v.a,v.b),n=Math.round(S.p.n),m=S.p.m;let P;if(S.p.f==='egen'){const[y0,y1]=autoY(f,0,7),ys=niceStep((y1-y0)/8);P=Plane(-.5,7.3,y0,y1,pad(S,28));P.grid(1,{sy:ys});P.axes({xs:1,ys,xl:'x',yl:'y'})}else{P=Plane(-.5,7.3,-2.4,6.6,pad(S,28));P.grid(1);P.axes({xs:1,ys:1,xl:'x',yl:'y'})}
  const d=(b-a)/n;P.clip(()=>{for(let i=0;i<n;i++){const x0=a+i*d;if(m==='tr'){const y0=f(x0),y1=f(x0+d);const c=(y0+y1)>=0?C.blue:C.red;poly([P.pt(x0,0),P.pt(x0,y0),P.pt(x0+d,y1),P.pt(x0+d,0)],A(c,.85),A(c,.28),n>40?.6:1.2)}else{const h=f(m==='v'?x0:m==='h'?x0+d:x0+d/2);const c=h>=0?C.blue:C.red;rct(P.X(x0),Math.min(P.Y(h),P.Y(0)),d*P.sx,Math.abs(h)*P.sy,A(c,.85),A(c,.28),n>40?.6:1.2);if(m==='mid'&&n<=20)dot(P.X(x0+d/2),P.Y(h),3,C.fg)}}});
  P.fn(f,C.yellow,3.2);[a,b].forEach((x,i)=>{ln(P.X(x),P.t,P.X(x),P.t+P.h,A(C.fg,.3),1.2,[5,5]);Tm(i?'b':'a',P.X(x)+5,P.t+14,{c:C.fg2,s:16})});
  const s=rsum(f,a,b,n,m),I=simpson(f,a,b,800);infoBox(P.l+P.w-250,P.t+8,[[`sum   = ${nf(s,5)}`,C.blue],[`integral = ${nf(I,5)}`,C.yellow],[`feil  = ${nf(s-I,5)}`,C.fg2]])},
@@ -23,20 +29,21 @@ live(S){const p=S.p,f=RF[p.f][0],a=Math.min(p.a,p.b),b=Math.max(p.a,p.b),n=Math.
 /* ---------- 21. Analysens fundamentalteorem ---------- */
 {
 const FF={b:[x=>1+.8*Math.sin(x)+.1*x,'1 + 0,8 sin x + 0,1x'],l:[x=>.5*x,'0,5x'],k:[()=>2,'2'],p:[x=>x*x/4-x+1.5,'¼x² − x + 1,5']};
+let FXF='sqrt(x)';FF.egen=[parseFx(FXF),FXF];
 M({id:'ma-fundamental',s:'ma',c:['R2','S2'],title:'Analysens fundamentalteorem',short:'Fundamentalteoremet',kw:'integral antiderivert arealfunksjon derivasjon integrasjon fundamentalteorem',
 lead:'$A(x)$ er arealet under $f$ fra 0 til $x$. Når $x$ øker med en liten bit $dx$, øker arealet med omtrent $f(x)\\cdot dx$. Derfor er $A\'(x)=f(x)$.',
 hint:'Dra den loddrette linjen, eller la den gå av seg selv.',
-controls:[{id:'f',type:'seg',label:'Funksjon f',value:'b',options:[['b','Bølge'],['l','0,5x'],['k','Konstant 2'],['p','Parabel']]},{id:'dx',label:'Bredde <i>dx</i>',min:.05,max:1,step:.05,value:.5},{id:'spd',label:'Fart',min:0,max:1.5,step:.1,value:.5}],
+controls:[{id:'f',type:'seg',label:'Funksjon f',value:'b',options:[['b','Bølge'],['l','0,5x'],['k','Konstant 2'],['p','Parabel'],['egen','Egen f(x)']]},{type:'func',label:'Skriv din egen funksjon',show:S=>S.p.f==='egen',get:()=>FXF,help:FXHELP,set(S,f,src){if(!okOn(f,0,8))return'Funksjonen må være definert mellom x = 0 og x = 8.';FXF=src;FF.egen=[f,src];return null}},{id:'dx',label:'Bredde <i>dx</i>',min:.05,max:1,step:.05,value:.5},{id:'spd',label:'Fart',min:0,max:1.5,step:.1,value:.5}],
 tex:['A(x)=\\int_0^x \\cB{f(t)}\\,dt','\\cT{A(x+dx)-A(x)}\\approx \\cY{f(x)\\cdot dx}\\;\\Rightarrow\\; A\'(x)=f(x)','\\int_a^b f(x)\\,dx=F(b)-F(a)'],
 about:['Øverst er det turkise området $A(x)$. Den gule stripen er den lille ekstra biten du får når $x$ øker med $dx$.','Nederst er grafen til $A$. Stigningstallet til den gule tangenten er nøyaktig $f(x)$, høyden på grafen over.','Dette er analysens fundamentalteorem: integrasjon og derivasjon er motsatte operasjoner. Derfor kan vi regne ut integraler med antideriverte.'],
 tasks:['Velg konstant $f(x)=2$. Hvilken graf får $A(x)$? Forklar.','Velg $f(x)=0{,}5x$. Vis at $A(x)=\\tfrac14x^2$.','Gjør $dx$ liten. Hvorfor blir trekanten nederst nesten lik tangenten?','Hvor er $A(x)$ brattest? Sammenlign med grafen til $f$.'],
 init(S){S.x=2.5},
 update(S,dt){if(!(Stage.drag&&S===Stage.S)){S.x+=dt*S.p.spd;if(S.x>7.4)S.x=.2}},
-draw(S){const f=FF[S.p.f][0],x=S.x,dx=S.v.dx;const[b1,b2]=rows(pad(S,28,22,26),[1,1],28);
- const N=400,XM=8,Ac=[0];let fm=0;for(let i=1;i<=N;i++){const x0=(i-1)*XM/N,x1=i*XM/N;Ac.push(Ac[i-1]+(f(x0)+f(x1))/2*(x1-x0));fm=Math.max(fm,f(x1))}
+draw(S){const f=FF[S.p.f][0],x=S.x,dx=S.v.dx;const[b1,b2]=rows(pad(S,40,22,26),[1,1],28);
+ const N=400,XM=8,Ac=[0];let fm=0,fn=0;const fs=t=>{const y=f(t);return isFinite(y)?y:0};for(let i=1;i<=N;i++){const x0=(i-1)*XM/N,x1=i*XM/N;Ac.push(Ac[i-1]+(fs(x0)+fs(x1))/2*(x1-x0));fm=Math.max(fm,fs(x1));fn=Math.min(fn,fs(x1))}const am=Math.max(...Ac),an=Math.min(...Ac);
  const Af=t=>{const k=clamp(t/XM*N,0,N);const i=Math.floor(k);return i>=N?Ac[N]:lerp(Ac[i],Ac[i+1],k-i)};
- const P1=Plane(0,XM,-.3,Math.max(fm,1)*1.2,b1),P2=Plane(0,XM,-.3,Ac[N]*1.08,b2);S.Ps=[P1,P2];
- P1.grid(1,{sy:1,minor:false,alpha:.1});P1.axes({xs:1,ys:1,xl:'x'});P2.grid(1,{sy:niceStep(Ac[N]/5),minor:false,alpha:.1});P2.axes({xs:1,ys:niceStep(Ac[N]/5),xl:'x'});
+ const P1=Plane(0,XM,Math.min(-.3,fn*1.2),Math.max(fm,1)*1.2,b1),P2=Plane(0,XM,Math.min(-.3,an*1.08),Math.max(.3,am*1.08),b2);S.Ps=[P1,P2];const s1=niceStep((P1.y1-P1.y0)/5),s2=niceStep((P2.y1-P2.y0)/5);
+ P1.grid(1,{sy:s1,minor:false,alpha:.1});P1.axes({xs:1,ys:s1,xl:'x'});P2.grid(1,{sy:s2,minor:false,alpha:.1});P2.axes({xs:1,ys:s2,xl:'x'});
  P1.area(f,0,x,A(C.teal,.28));rct(P1.X(x),P1.Y(f(x)),dx*P1.sx,P1.Y(0)-P1.Y(f(x)),C.yellow,A(C.yellow,.45),1.5);P1.fn(f,C.blue,3.2);
  T('A(x)',P1.X(x/2),P1.Y(f(x/2)/2),{a:'center',f:'m',s:18,c:C.teal});T('f(x)·dx',P1.X(x+dx/2),P1.Y(f(x))-14,{a:'center',f:'m',s:14,c:C.yellow});
  Tm('f(x)',P1.l+6,P1.t+10,{c:C.blue,s:16});Tm('A(x)',P2.l+6,P2.t+10,{c:C.teal,s:16});

@@ -22,6 +22,8 @@ function bisect(f,a,b,it=80){let fa=f(a);for(let i=0;i<it;i++){const m=(a+b)/2,f
 
 /* ---- tallformat (norsk: desimalkomma) ---- */
 function nf(x,d=2){if(x===undefined||x===null||!isFinite(x))return '–';let r=x.toLocaleString('nb-NO',{minimumFractionDigits:d,maximumFractionDigits:d});if(/^[−-]0(,0+)?$/.test(r))r=r.slice(1);return r}
+/* tall uten tusenskille, til tekstfelt som skal kunne leses inn igjen */
+const nfr=(x,d=2)=>nf(x,d).replace(/[\s  ]/g,'');
 const SUPM={'-':'⁻','−':'⁻','+':'⁺','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
 const SUBM={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','+':'₊','-':'₋'};
 const sup=n=>String(n).split('').map(c=>SUPM[c]||c).join('');
@@ -101,6 +103,43 @@ function rows(b,rs,g=14){const tot=rs.reduce((a,c)=>a+c,0),H=b.h-g*(rs.length-1)
 function cols(b,rs,g=14){const tot=rs.reduce((a,c)=>a+c,0),W=b.w-g*(rs.length-1);let x=b.l;return rs.map(r=>{const w=W*r/tot,o={l:x,t:b.t,w,h:b.h};x+=w+g;return o})}
 function inset(b,d){return{l:b.l+d,t:b.t+d,w:b.w-2*d,h:b.h-2*d}}
 function frame(b,c){rr(b.l,b.t,b.w,b.h,4,A(c||C.fg,.12),null,1)}
+
+/* ---- uttrykk og tall skrevet av brukeren: tolkes trygt uten eval ----
+   parseFx('2x^2 - 3sin x') gir en funksjon f(x). Kaster Error med norsk melding ved feil.
+   Tillatt: tall (komma eller punktum), x, + − · / ^ ² ³, parenteser, implisitt gange (2x, 3(x+1)),
+   sin cos tan sqrt √ abs exp ln lg log, pi π og e. */
+const FXFN={sqrt:Math.sqrt,sin:Math.sin,cos:Math.cos,tan:Math.tan,exp:Math.exp,abs:Math.abs,ln:Math.log,lg:Math.log10,log:Math.log10};
+const FXNAMES=['sqrt','sin','cos','tan','exp','abs','ln','lg','log','pi','e','x'];
+function parseFx(src,vars=['x']){
+  const s=String(src).toLowerCase().replace(/^\s*(f\s*\(\s*x\s*\)|y)\s*=/,'').replace(/[·×⋅]/g,'*').replace(/[−–]/g,'-').replace(/²/g,'^2').replace(/³/g,'^3').replace(/√/g,'sqrt').replace(/π/g,'pi').replace(/,/g,'.');
+  if(!s.trim())throw new Error('Skriv inn et uttrykk.');
+  const tk=[];let i=0;
+  while(i<s.length){const ch=s[i];if(/\s/.test(ch)){i++;continue}
+    if(/[0-9.]/.test(ch)){let j=i;while(j<s.length&&/[0-9.]/.test(s[j]))j++;const w=s.slice(i,j);if(!/^(\d+\.?\d*|\.\d+)$/.test(w))throw new Error(`Forstår ikke tallet «${w}».`);tk.push({t:'n',v:parseFloat(w)});i=j;continue}
+    if(/[a-zæøå]/.test(ch)){let j=i;while(j<s.length&&/[a-zæøå]/.test(s[j]))j++;let w=s.slice(i,j);
+      while(w.length){const nm=FXNAMES.find(n=>w.startsWith(n)&&(n!=='x'||vars.includes('x')));if(!nm)throw new Error(`Ukjent navn «${w}». Bruk x, tall og funksjoner som sin, cos, ln og sqrt.`);tk.push(FXFN[nm]?{t:'f',v:nm}:{t:'id',v:nm});w=w.slice(nm.length)}
+      i=j;continue}
+    if('+-*/^()'.includes(ch)){tk.push({t:'o',v:ch});i++;continue}
+    throw new Error(`Ukjent tegn «${ch}».`)}
+  let p=0;const peek=()=>tk[p],isO=v=>tk[p]&&tk[p].t==='o'&&tk[p].v===v;
+  const starts=()=>{const q=tk[p];return q&&(q.t!=='o'||q.v==='(')};
+  function expr(){let a=term();while(isO('+')||isO('-')){const op=tk[p++].v,b=term(),l=a;a=op==='+'?x=>l(x)+b(x):x=>l(x)-b(x)}return a}
+  function term(){let a=unary();for(;;){if(isO('*')||isO('/')){const op=tk[p++].v,b=unary(),l=a;a=op==='*'?x=>l(x)*b(x):x=>l(x)/b(x)}else if(starts()){const b=power(),l=a;a=x=>l(x)*b(x)}else return a}}
+  function unary(){if(isO('-')){p++;const a=unary();return x=>-a(x)}if(isO('+')){p++;return unary()}return power()}
+  function power(){const a=atom();if(isO('^')){p++;const b=unary();return x=>Math.pow(a(x),b(x))}return a}
+  function atom(){const q=tk[p];if(!q)throw new Error('Uttrykket slutter for tidlig.');
+    if(q.t==='n'){p++;const v=q.v;return()=>v}
+    if(q.t==='id'){p++;if(q.v==='pi')return()=>PI;if(q.v==='e')return()=>Math.E;return x=>x}
+    if(q.t==='f'){p++;const fn=FXFN[q.v];const a=isO('(')?atom():power();return x=>fn(a(x))}
+    if(isO('(')){p++;const a=expr();if(!isO(')'))throw new Error('Mangler en sluttparentes «)».');p++;return a}
+    throw new Error(`Uventet «${q.v}».`)}
+  const f=expr();if(p<tk.length)throw new Error(`Uventet «${tk[p].v}».`);return f}
+/* Et tall skrevet av brukeren: «9,81», «1,5·10^-4», «2/3», «45 kg». Gir NaN hvis det ikke går. */
+function parseNum(src,unit){let s=String(src).trim().replace(/(\d)[\s  ]+(?=\d{3}\b)/g,'$1');if(unit&&s.endsWith(unit))s=s.slice(0,-unit.length);s=s.replace(/[%°]|\s+$/g,'').replace(/(\d)\s*[eE]\s*([+\-−]?\d)/g,'$1*10^$2');
+  try{const v=parseFx(s,[])();return isFinite(v)?v:NaN}catch(e){return NaN}}
+/* En liste med tall: skilt med mellomrom, semikolon, linjeskift eller «, ». «6,5» er desimaltall. */
+function parseNums(src){const out=[];for(let w of String(src).split(/[\s;]+|,(?=\s)/)){w=w.trim().replace(/,$/,'');if(!w)continue;
+  const parts=(w.match(/,/g)||[]).length>1?w.split(','):[w];for(const q of parts){if(!q)continue;const v=parseNum(q);if(!isFinite(v))throw new Error(`Forstår ikke «${q}». Skill tallene med mellomrom.`);out.push(v)}}return out}
 
 /* ================= Modulregister og scene ================= */
 const MODS=[], MOD={};

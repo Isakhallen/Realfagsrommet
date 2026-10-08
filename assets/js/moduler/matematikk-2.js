@@ -75,29 +75,34 @@ live(S){const p=S.p,n=cross([p.ux,p.uy,p.uz],[p.vx,p.vy,p.vz]);return`\\text{Pla
 const START=[15,20,25,30,30,35,40,40,45,45,45,50,55,60,60,70,80,95];
 const med=a=>{const n=a.length;if(!n)return NaN;return n%2?a[(n-1)/2]:(a[n/2-1]+a[n/2])/2};
 function stats(d){const s=[...d].sort((a,b)=>a-b),n=s.length,mean=s.reduce((a,b)=>a+b,0)/n,m=med(s);const lo=s.slice(0,Math.floor(n/2)),hi=s.slice(Math.ceil(n/2));const v=s.reduce((a,x)=>a+(x-mean)**2,0);const cnt={};let mode=[],best=0;s.forEach(x=>{cnt[x]=(cnt[x]||0)+1;if(cnt[x]>best)best=cnt[x]});for(const k in cnt)if(cnt[k]===best)mode.push(+k);return{s,n,mean,m,q1:med(lo),q3:med(hi),sd:Math.sqrt(v/n),ssd:n>1?Math.sqrt(v/(n-1)):NaN,min:s[0],max:s[n-1],mode:best>1?mode:[]}}
-const bin=x=>Math.round(x/5)*5;
+/* tallinja: standard er lekseminutter 0–120 i grupper på 5, ellers tilpasset egne tall */
+const RG0={lo:0,hi:120,bw:5,xs:10,unit:'min'};
+const bin=(x,S)=>{const w=S?S.rg.bw:5;return +(Math.round(x/w)*w).toFixed(6)};
+function rangeOf(d){const mn=Math.min(...d),mx=Math.max(...d),sp=Math.max(mx-mn,Math.abs(mx)*.1,1e-6),xs=niceStep(sp/8);const dp=Math.max(0,...d.map(v=>{const t=String(+v.toFixed(6));return t.includes('.')?t.split('.')[1].length:0}));return{lo:Math.floor(mn/xs)*xs-xs,hi:Math.ceil(mx/xs)*xs+xs,bw:10**-dp,xs,unit:''}}
 M({id:'ma-statistikk',s:'ma',c:['1P','2P'],title:'Sentralmål og spredningsmål',short:'Sentralmål og spredning',kw:'gjennomsnitt median typetall standardavvik kvartil boksplott variasjonsbredde uteligger statistikk',
 lead:'Hvert punkt er en elev og hvor mange minutter hun brukte på lekser. Flytt punktene, legg til en uteligger, og se hvilke mål som endrer seg mest.',
 hint:'Dra punktene. Klikk på tom plass for å legge til et punkt.',
-controls:[{type:'btns',items:[['Legg til uteligger',S=>S.data.push(115)],['Fjern siste',S=>{if(S.data.length>2)S.data.pop()}],['Nytt datasett',S=>{const r=rng(Math.floor(Math.random()*1e6));S.data=Array.from({length:16+Math.floor(r()*8)},()=>clamp(bin(48+18*(r()+r()+r()-1.5)*1.6),0,120))}]]},{id:'sd',type:'check',label:'Vis gjennomsnitt ± standardavvik',value:true}],
+controls:[{type:'btns',items:[['Legg til uteligger',S=>S.data.push(bin(S.rg.lo+(S.rg.hi-S.rg.lo)*.96,S))],['Fjern siste',S=>{if(S.data.length>2)S.data.pop()}],['Nytt datasett',S=>{const r=rng(Math.floor(Math.random()*1e6));S.rg=RG0;S.data=Array.from({length:16+Math.floor(r()*8)},()=>clamp(bin(48+18*(r()+r()+r()-1.5)*1.6),0,120))}]]},{id:'sd',type:'check',label:'Vis gjennomsnitt ± standardavvik',value:true},
+ {type:'data',label:'Egne tall',ph:'For eksempel: 12 15 15 18 22 40',help:'Skriv 2–60 tall med mellomrom mellom. Bruk komma som desimaltegn.',get:S=>S.data.map(v=>nfr(v,v%1?Math.min(4,String(v).split('.')[1].length):0)).join(' '),
+  set(S,t){const d=parseNums(t);if(d.length<2)return'Skriv minst to tall.';if(d.length>60)return'Du kan skrive høyst 60 tall.';S.data=d;S.rg=rangeOf(d);return null}}],
 tex:['\\bar x=\\frac{x_1+x_2+\\dots+x_n}{n}','\\sigma=\\sqrt{\\frac{(x_1-\\bar x)^2+\\dots+(x_n-\\bar x)^2}{n}}'],
 about:['<strong>Gjennomsnittet</strong> (blått) er balansepunktet: tenk deg at punktene er like tunge lodd på en vippe.','<strong>Medianen</strong> (gul) er den midterste verdien når tallene står i rekkefølge. Den bryr seg ikke om hvor langt ute uteliggerne er.','<strong>Standardavviket</strong> måler hvor langt verdiene i snitt ligger fra gjennomsnittet. Boksplottet nederst viser kvartilene: halvparten av dataene ligger inne i boksen.','Standardavviket over deler på $n$. Regner du med et utvalg, deler du ofte på $n-1$ i stedet (vist som $s$).'],
 tasks:['Legg til en uteligger. Hvilket mål flytter seg mest: gjennomsnittet eller medianen?','Lag et datasett der gjennomsnitt og median er like.','Gjør standardavviket så lite som mulig uten å fjerne punkter.','Når er medianen et bedre mål enn gjennomsnittet? Gi et eksempel fra virkeligheten.'],
-init(S){S.data=[...START];S.dr=-1},
-geom(S){const[top,bot]=rows(pad(S,30,22,28),[2.4,1],30);return{Pd:Plane(0,120,0,10,top),Pb:Plane(0,120,0,1,bot)}},
-pos(S,Pd){const r=clamp(Pd.sx*2.1,3.5,9),cnt={},o=[];S.data.forEach((x,i)=>{const b=i===S.dr?x:bin(x);const k=i===S.dr?0:(cnt[b]=(cnt[b]||0)+1)-1;o.push([Pd.X(b),Pd.Y(0)-r-3-k*(2*r+2),r])});return o},
+init(S){S.data=[...START];S.dr=-1;S.rg=RG0},
+geom(S){const[top,bot]=rows(pad(S,30,22,28),[2.4,1],30);const g=S.rg;return{Pd:Plane(g.lo,g.hi,0,10,top),Pb:Plane(g.lo,g.hi,0,1,bot)}},
+pos(S,Pd){const r=clamp(Pd.sx*2.1,3.5,9),cnt={},o=[];S.data.forEach((x,i)=>{const b=i===S.dr?x:bin(x,S);const k=i===S.dr?0:(cnt[b]=(cnt[b]||0)+1)-1;o.push([Pd.X(b),Pd.Y(0)-r-3-k*(2*r+2),r])});return o},
 draw(S){const{Pd,Pb}=this.geom(S);S.G={Pd,Pb};const st=stats(S.data);
- Pd.axes({xs:10,y:false,xl:'min',ls:14});
+ const g=S.rg;Pd.axes({xs:g.xs,y:false,yAt:0,xl:g.unit,ls:14,x0:true});
  if(S.p.sd){const a=Pd.X(st.mean-st.sd),b=Pd.X(st.mean+st.sd);rct(a,Pd.t,b-a,Pd.h,null,A(C.blue,.08));T('x̄ ± σ',a+4,Pd.t+10,{s:12,c:C.blue})}
  ln(Pd.X(st.mean),Pd.t,Pd.X(st.mean),Pd.Y(0)+18,C.blue,2.2);ln(Pd.X(st.m),Pd.t+20,Pd.X(st.m),Pd.Y(0)+18,C.yellow,2.2,[6,4]);
  T('x̄ = '+nf(st.mean,1),Pd.X(st.mean)+(st.mean>=st.m?6:-6),Pd.t+30,{s:13,f:'n',c:C.blue,a:st.mean>=st.m?'left':'right',bg:A(C.stage,.7)});T('median = '+nf(st.m,1),Pd.X(st.m)+(st.mean>=st.m?-6:6),Pd.t+52,{s:13,f:'n',c:C.yellow,a:st.mean>=st.m?'right':'left',bg:A(C.stage,.7)});
  this.pos(S,Pd).forEach(([x,y,r],i)=>circ(x,y,r,i===S.dr?C.yellow:null,i===S.dr?A(C.yellow,.6):A(C.fg,.85),2));
- const yb=Pb.t+Pb.h*.5,hb=Math.min(34,Pb.h*.6);Pb.axes({xs:10,y:false,yAt:0,xl:'min',ls:14});
+ const yb=Pb.t+Pb.h*.5,hb=Math.min(34,Pb.h*.6);Pb.axes({xs:g.xs,y:false,yAt:0,xl:g.unit,ls:14,x0:true});
  ln(Pb.X(st.min),yb,Pb.X(st.q1),yb,C.fg2,1.6);ln(Pb.X(st.q3),yb,Pb.X(st.max),yb,C.fg2,1.6);[st.min,st.max].forEach(x=>ln(Pb.X(x),yb-hb/3,Pb.X(x),yb+hb/3,C.fg2,1.6));
  rct(Pb.X(st.q1),yb-hb/2,Pb.X(st.q3)-Pb.X(st.q1),hb,C.teal,A(C.teal,.15),1.8);ln(Pb.X(st.m),yb-hb/2,Pb.X(st.m),yb+hb/2,C.yellow,2.4);
  [['min',st.min],['Q₁',st.q1],['Q₃',st.q3],['maks',st.max]].forEach(([l,x],i)=>T(l,Pb.X(x),yb-hb/2-10-(i%2)*0,{a:'center',s:11.5,c:C.fg3,f:'n'}))},
-pick(S,x,y){const G=S.G;if(!G)return;const ps=this.pos(S,G.Pd);for(let i=ps.length-1;i>=0;i--){const[px,py,r]=ps[i];if(near(x,y,px,py,r+5))return{move:mx=>{S.dr=i;S.data[i]=clamp(Math.round(G.Pd.ix(mx)),0,120)},up:()=>{S.data[S.dr]=bin(S.data[S.dr]);S.dr=-1}}}},
-click(S,x,y){const G=S.G;if(G&&G.Pd.in(x,y,6))S.data.push(clamp(bin(G.Pd.ix(x)),0,120))},
+pick(S,x,y){const G=S.G;if(!G)return;const ps=this.pos(S,G.Pd);for(let i=ps.length-1;i>=0;i--){const[px,py,r]=ps[i];if(near(x,y,px,py,r+5))return{move:mx=>{S.dr=i;S.data[i]=clamp(G.Pd.ix(mx),S.rg.lo,S.rg.hi)},up:()=>{S.data[S.dr]=bin(S.data[S.dr],S);S.dr=-1}}}},
+click(S,x,y){const G=S.G;if(G&&G.Pd.in(x,y,6))S.data.push(clamp(bin(G.Pd.ix(x),S),S.rg.lo,S.rg.hi))},
 readout(S){const s=stats(S.data);return[['n',s.n],['x̄',nf(s.mean,1),'blue'],['median',nf(s.m,1),'yellow'],['typetall',s.mode.length&&s.mode.length<4?s.mode.join(', '):'–'],['variasjonsbredde',nf(s.max-s.min,0)],['σ',nf(s.sd,1)],['s',nf(s.ssd,1)],['kvartilbredde',nf(s.q3-s.q1,1),'teal']]}
 });
 }
@@ -110,22 +115,28 @@ function fit(S){const pts=S.pts,m=S.p.mode,n=pts.length;if(n<2)return null;
  if(m==='lin'||m==='eksp'){const P=m==='eksp'?pts.filter(p=>p[1]>0).map(p=>[p[0],Math.log(p[1])]):pts;const k=P.length;if(k<2)return null;let sx=0,sy=0,sxx=0,sxy=0;P.forEach(([x,y])=>{sx+=x;sy+=y;sxx+=x*x;sxy+=x*y});const den=k*sxx-sx*sx;if(Math.abs(den)<1e-9)return null;const a=(k*sxy-sx*sy)/den,b=(sy-a*sx)/k;
   if(m==='lin')return{f:x=>a*x+b,txt:`y = ${nf(a,3)}x ${b<0?'−':'+'} ${nf(Math.abs(b),3)}`,tex:`y=${tn(a,3)}x ${tsg(b,3)}`};const A_=Math.exp(b),B=Math.exp(a);return{f:x=>A_*Math.pow(B,x),txt:`y = ${nf(A_,3)} · ${nf(B,3)}ˣ`,tex:`y=${tn(A_,3)}\\cdot ${tn(B,3)}^{x}`}}
  if(n<3)return null;const s=[0,0,0,0,0],t=[0,0,0];pts.forEach(([x,y])=>{for(let i=0;i<5;i++)s[i]+=x**i;for(let i=0;i<3;i++)t[i]+=y*x**i});const sol=gaussSolve([[s[4],s[3],s[2]],[s[3],s[2],s[1]],[s[2],s[1],s[0]]],[t[2],t[1],t[0]]);if(!sol)return null;const[a,b,c]=sol;return{f:x=>a*x*x+b*x+c,txt:`y = ${nf(a,3)}x² ${b<0?'−':'+'} ${nf(Math.abs(b),3)}x ${c<0?'−':'+'} ${nf(Math.abs(c),3)}`,tex:`y=${tn(a,3)}x^2 ${tsg(b,3)}x ${tsg(c,3)}`}}
+/* egne tallpar: aksene tilpasses dataene (standard er 0–10 på begge akser) */
+const trim=v=>{let r=nfr(v,4);if(r.includes(','))r=r.replace(/0+$/,'').replace(/,$/,'');return r};
+function rangeXY(pts){const ax=i=>{const v=pts.map(p=>p[i]),mn=Math.min(...v),mx=Math.max(...v),sp=Math.max(mx-mn,Math.abs(mx)*.1,1e-6),st=niceStep(sp/8);let lo=Math.floor((mn-sp*.06)/st)*st;const hi=Math.ceil((mx+sp*.06)/st)*st;if(mn>=0&&lo<0)lo=0;if(i===1&&mn>0&&mn<mx*.5)lo=0;return[lo,hi,st]};const[x0,x1,xs]=ax(0),[y0,y1,ys]=ax(1);return{x0,x1,xs,y0,y1,ys}}
+const snapR=(v,st)=>+(Math.round(v/(st/10))*(st/10)).toFixed(6);
 function sse(S,F){const my=S.pts.reduce((a,p)=>a+p[1],0)/S.pts.length;let e=0,t=0;S.pts.forEach(([x,y])=>{e+=(y-F.f(x))**2;t+=(y-my)**2});return[e,t?1-e/t:NaN]}
 M({id:'ma-regresjon',s:'ma',c:['2P','S1','R1'],title:'Regresjon og minste kvadraters metode',short:'Regresjon',kw:'regresjon modell lineær eksponentiell andregrads kvadrater residual R² data tilpasning',
 lead:'Regresjon finner kurven som gjør summen av de røde kvadratene minst mulig. Dra punktene og se kvadratene og kurven endre seg sammen.',
 hint:'Dra punktene, eller klikk for å legge til nye.',
-controls:[{id:'mode',type:'seg',label:'Modell',value:'lin',options:[['lin','Lineær'],['eksp','Eksponentiell'],['kvad','Andregrad']]},{id:'sq',type:'check',label:'Vis kvadratene',value:true},{type:'btns',items:[['Ny lineær data',S=>{S.pts=lin(rng(Math.random()*1e6|0))}],['Ny eksponentiell data',S=>{S.pts=ekp(rng(Math.random()*1e6|0))}],['Fjern siste',S=>{if(S.pts.length>2)S.pts.pop()}]]}],
+controls:[{id:'mode',type:'seg',label:'Modell',value:'lin',options:[['lin','Lineær'],['eksp','Eksponentiell'],['kvad','Andregrad']]},{id:'sq',type:'check',label:'Vis kvadratene',value:true},{type:'btns',items:[['Ny lineær data',S=>{S.rg=null;S.pts=lin(rng(Math.random()*1e6|0))}],['Ny eksponentiell data',S=>{S.rg=null;S.pts=ekp(rng(Math.random()*1e6|0))}],['Fjern siste',S=>{if(S.pts.length>2)S.pts.pop()}]]},
+ {type:'data',label:'Egne tallpar (x og y)',rows:5,ph:'1 2,3\n2 4,1\n3 5,8',btn:'Bruk tallparene',help:'Ett tallpar per linje: x-verdi, mellomrom og y-verdi. Bruk komma som desimaltegn. 2–40 par.',get:S=>S.pts.map(p=>trim(p[0])+' '+trim(p[1])).join('\n'),
+  set(S,t){const L=t.split(/\n|;/).map(l=>l.trim()).filter(Boolean);if(L.length<2)return'Skriv minst to tallpar, ett per linje.';if(L.length>40)return'Du kan skrive høyst 40 tallpar.';const pts=[];for(let i=0;i<L.length;i++){let v;try{v=parseNums(L[i])}catch(e){return`Linje ${i+1}: ${e.message}`}if(v.length!==2)return`Linje ${i+1}: skriv to tall, x og y, med mellomrom mellom.`;pts.push(v)}S.pts=pts;S.rg=rangeXY(pts);return null}}],
 tex:['\\text{SSE}=\\sum_{i}\\bigl(\\cY{y_i}-\\cB{f(x_i)}\\bigr)^2\\ \\text{minimeres}','R^2=1-\\frac{\\text{SSE}}{\\sum (y_i-\\bar y)^2}'],
 about:['Avstanden fra et punkt til kurven kalles et <strong>residual</strong>. Hvert rødt kvadrat har residualet som side.','Regresjonskurven er den som gir minst samlet areal. Derfor heter det «minste kvadraters metode».','$R^2$ forteller hvor mye av variasjonen modellen forklarer. 1 betyr at alle punktene ligger på kurven.','Den eksponentielle modellen finnes ved å gjøre lineær regresjon på $\\ln y$. Derfor må alle $y$-verdiene være positive.'],
 tasks:['Flytt ett punkt langt bort. Hvor mye endres linjen? Hvorfor trekker et fjernt punkt så mye?','Lag data som passer best med en eksponentiell modell. Sammenlign $R^2$ for de tre modellene.','Kan $R^2$ være høy selv om modellen er dårlig for å spå fremtiden?','Legg alle punktene på en rett linje. Hva blir SSE?'],
-init(S){S.pts=lin(rng(11))},
-draw(S){const P=Plane(0,10,0,10,pad(S,30),true);S.P=P;P.grid(1);P.axes({xs:1,ys:1,xl:'x',yl:'y'});const F=fit(S);
+init(S){S.pts=lin(rng(11));S.rg=null},
+draw(S){const g=S.rg;const P=g?Plane(g.x0,g.x1,g.y0,g.y1,{l:62,t:30,w:S.W-92,h:S.H-60}):Plane(0,10,0,10,pad(S,30),true);S.P=P;if(g){P.grid(g.xs,{sy:g.ys});P.axes({xs:g.xs,ys:g.ys,xAt:g.x0,yAt:g.y0,x0:true,y0:true,xl:'x',yl:'y'})}else{P.grid(1);P.axes({xs:1,ys:1,xl:'x',yl:'y'})}const F=fit(S);
  if(F){if(S.p.sq)S.pts.forEach(([x,y])=>{const yh=F.f(x),r=y-yh;if(!isFinite(yh))return;const s=Math.abs(r);P.clip(()=>{rct(P.X(x),Math.min(P.Y(y),P.Y(yh)),s*P.sx,s*P.sy,A(C.red,.55),A(C.red,.13),1.2)})});
   P.fn(F.f,C.blue,3.2);S.pts.forEach(([x,y])=>{const yh=F.f(x);if(isFinite(yh))ln(P.X(x),P.Y(y),P.X(x),P.Y(yh),A(C.red,.85),1.6)});
   const[e,r2]=sse(S,F);infoBox(P.l+8,P.t+8,[[F.txt,C.blue],[`SSE = ${nf(e,2)}`,C.red],[`R² = ${nf(r2,4)}`,C.fg2]])}
  S.pts.forEach(p=>handle(...P.pt(...p),C.yellow,S))},
-pick(S,x,y){const P=S.P;if(!P)return;for(let i=S.pts.length-1;i>=0;i--){if(near(x,y,...P.pt(...S.pts[i]),16))return{move:(mx,my)=>{S.pts[i]=[clamp(Math.round(P.ix(mx)*10)/10,.1,9.9),clamp(Math.round(P.iy(my)*10)/10,.1,9.9)]}}}},
-click(S,x,y){const P=S.P;if(P&&P.in(x,y)&&S.pts.length<40)S.pts.push([clamp(Math.round(P.ix(x)*10)/10,.1,9.9),clamp(Math.round(P.iy(y)*10)/10,.1,9.9)])},
+pick(S,x,y){const P=S.P;if(!P)return;for(let i=S.pts.length-1;i>=0;i--){if(near(x,y,...P.pt(...S.pts[i]),16))return{move:(mx,my)=>{const g=S.rg;S.pts[i]=g?[clamp(snapR(P.ix(mx),g.xs),g.x0,g.x1),clamp(snapR(P.iy(my),g.ys),g.y0,g.y1)]:[clamp(Math.round(P.ix(mx)*10)/10,.1,9.9),clamp(Math.round(P.iy(my)*10)/10,.1,9.9)]}}}},
+click(S,x,y){const P=S.P,g=S.rg;if(P&&P.in(x,y)&&S.pts.length<40)S.pts.push(g?[snapR(P.ix(x),g.xs),snapR(P.iy(y),g.ys)]:[clamp(Math.round(P.ix(x)*10)/10,.1,9.9),clamp(Math.round(P.iy(y)*10)/10,.1,9.9)])},
 readout(S){const F=fit(S);if(!F)return[['n',S.pts.length]];const[e,r2]=sse(S,F);return[['n',S.pts.length],['SSE',nf(e,3),'red'],['R²',nf(r2,4)]]},
 live(S){const F=fit(S);return F?F.tex:''}
 });

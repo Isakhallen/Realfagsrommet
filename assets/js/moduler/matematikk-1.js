@@ -176,15 +176,18 @@ live(S){const p=S.p;return`f(x)=${tn(p.A,1)}\\${p.fn}\\!\\left(${tn(p.k,2)}x ${t
 /* ---------- 7. Fra sekant til tangent ---------- */
 {
 const FS={q:[x=>x*x/2,x=>x],p:[x=>x*x*x/4-x,x=>.75*x*x-1],s:[x=>2*Math.sin(x),x=>2*Math.cos(x)]};
+/* egen funksjon fra eleven; den deriverte regnes numerisk */
+const mkS=f=>[f,x=>(f(x+1e-5)-f(x-1e-5))/2e-5];let FXS='x^2 - 2x';FS.egen=mkS(parseFx(FXS));
+function autoY(f,a,b){const v=[];for(let i=0;i<=200;i++){const y=f(a+(b-a)*i/200);if(isFinite(y))v.push(y)}v.sort((p,q)=>p-q);if(!v.length)return[-4,4];let lo=v[Math.floor(v.length*.03)],hi=v[Math.ceil(v.length*.97)-1];lo=Math.min(lo,0);hi=Math.max(hi,0);const e=Math.max((hi-lo)*.1,.5);return[lo-e,hi+e]}
 M({id:'ma-sekant',s:'ma',c:['1T','R1','S1'],title:'Fra sekant til tangent',short:'Sekant og tangent',kw:'derivasjon momentan vekstfart gjennomsnittlig vekstfart grenseverdi stigningstall derivert',
 lead:'Gjennomsnittlig vekstfart er stigningstallet til sekanten gjennom to punkt. Når $h$ går mot 0, blir sekanten til tangenten, og vi får den deriverte.',
 hint:'Dra punktene, eller trykk «La h → 0».',
-controls:[{id:'f',type:'seg',label:'Funksjon',value:'p',options:[['q','½x²'],['p','¼x³ − x'],['s','2 sin x']]},{id:'x0',label:'Punkt <i>x</i>₀',min:-3,max:3,step:.05,value:1.2},{id:'h',label:'Avstand <i>h</i>',min:.005,max:3,step:.005,value:2,d:3},{type:'btns',items:[['La h → 0',S=>{S.anim={t:0,h0:Math.max(S.p.h,.3)}}],['Tilbake til h = 2',S=>{S.anim=null;setP('h',2,S)}]]}],
+controls:[{id:'f',type:'seg',label:'Funksjon',value:'p',options:[['q','½x²'],['p','¼x³ − x'],['s','2 sin x'],['egen','Egen f(x)']]},{type:'func',label:'Skriv din egen funksjon',show:S=>S.p.f==='egen',get:()=>FXS,help:'Eksempler: x^3 - 2x, 2sin(x), e^(x/2), ln(x+4), sqrt(x). Bruk ^ for potens og komma som desimaltegn.',set(S,f,src){if(![-3,-1,0,1,2.5].some(x=>isFinite(f(x))))return'Funksjonen er ikke definert for x mellom −3 og 3.';FXS=src;FS.egen=mkS(f);return null}},{id:'x0',label:'Punkt <i>x</i>₀',min:-3,max:3,step:.05,value:1.2},{id:'h',label:'Avstand <i>h</i>',min:.005,max:3,step:.005,value:2,d:3},{type:'btns',items:[['La h → 0',S=>{S.anim={t:0,h0:Math.max(S.p.h,.3)}}],['Tilbake til h = 2',S=>{S.anim=null;setP('h',2,S)}]]}],
 tex:['\\frac{\\Delta y}{\\Delta x}=\\frac{f(x_0+\\cR{h})-f(x_0)}{\\cR{h}}','f\'(x_0)=\\lim_{h\\to 0}\\frac{f(x_0+h)-f(x_0)}{h}'],
 about:['Den <strong>gule</strong> linjen er sekanten gjennom punktene $(x_0, f(x_0))$ og $(x_0+h, f(x_0+h))$. Stigningstallet er gjennomsnittlig vekstfart på intervallet.','Den <strong>turkise</strong> stiplede linjen er tangenten. Stigningstallet er den momentane vekstfarten, altså $f\'(x_0)$.','Trykk «La h → 0» og se sekanten legge seg oppå tangenten. Det er definisjonen av den deriverte som grenseverdi.'],
 tasks:['Velg $\\tfrac12x^2$. Hva er $f\'(x_0)$ for ulike $x_0$? Ser du et mønster?','Finn punktene på $\\tfrac14x^3-x$ der tangenten er vannrett.','Hvor liten må $h$ være for at sekantens stigningstall skal stemme med $f\'(x_0)$ på to desimaler?','Hva skjer hvis du lar $h$ være negativ? (Dra det rosa punktet forbi det gule.)'],
 update(S,dt){if(S.anim){S.anim.t+=dt/2.6;const e=ease(S.anim.t);S.p.h=Math.max(.005,S.anim.h0*Math.pow(.005/S.anim.h0,e));S.v.h=S.p.h;if(S===Stage.S)syncCtl('h');if(S.anim.t>=1)S.anim=null}},
-draw(S){const[f,fp]=FS[S.p.f];const v=S.v,x0=v.x0,h=v.h;const P=Plane(-4,4,-4,4,pad(S,26),true);S.P=P;P.grid(1);P.axes({xs:1,ys:1,xl:'x',yl:'y'});
+draw(S){const[f,fp]=FS[S.p.f];const v=S.v,x0=v.x0,h=v.h;let P;if(S.p.f==='egen'){const[y0,y1]=autoY(f,-4,4),ys=niceStep((y1-y0)/8);P=Plane(-4,4,y0,y1,pad(S,26));P.grid(1,{sy:ys});P.axes({xs:1,ys,xl:'x',yl:'y'})}else{P=Plane(-4,4,-4,4,pad(S,26),true);P.grid(1);P.axes({xs:1,ys:1,xl:'x',yl:'y'})}S.P=P;
  const y0=f(x0),x1=x0+h,y1=f(x1),m=(y1-y0)/h,t=fp(x0);
  P.fn(x=>y0+t*(x-x0),C.teal,2,{dash:[7,6]});P.fn(f,C.blue,3.2);P.fn(x=>y0+m*(x-x0),C.yellow,2.4);
  ln(P.X(x0),P.Y(y0),P.X(x1),P.Y(y0),C.green,2.6);ln(P.X(x1),P.Y(y0),P.X(x1),P.Y(y1),C.red,2.6);
