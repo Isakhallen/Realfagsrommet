@@ -56,6 +56,8 @@
 <script defer src="assets/js/laereplan.js"></script>
 <script defer src="assets/js/temaer.js"></script>
 <script defer src="assets/js/app.js"></script>
+<!-- Besøkstelling med GoatCounter (ingen informasjonskapsler). no_onload: app.js teller hver visning selv, fordi siden bytter innhold via #-lenker. -->
+<script id="goatcounter" data-goatcounter="https://isakhallen.goatcounter.com/count" data-goatcounter-settings='{"no_onload": true}' async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
 <noscript><p>Realfagsrommet består av animasjoner som trenger JavaScript. Slå på JavaScript i nettleseren for å bruke siden.</p></noscript>
@@ -157,6 +159,7 @@
         <section class="formulas"><h3>Formler</h3><div id="mTex"></div></section>
         <section class="tasks"><h3>Prøv dette</h3><ol id="mTasks"></ol>
           <p class="share">Lenke til denne animasjonen: <code id="mCode"></code> <button class="reset-p" id="bCopy" type="button" data-label="Kopier lenke">Kopier lenke</button></p>
+          <p class="share fb-open" hidden>Noe som ikke virker, eller en idé? <button class="reset-p" type="button" data-fb>Si fra om denne animasjonen</button></p>
         </section>
       </div>
       <nav class="prevnext" id="prevnext" aria-label="Forrige og neste"></nav>
@@ -174,14 +177,43 @@
       <div>
         <p><b>Realfagsrommet</b></p>
         <p>Interaktive animasjoner for matematikk, fysikk, kjemi, biologi, naturfag og geografi på Vg1–Vg3. Emnene følger kompetansemålene i læreplanene (LK20) fra <a href="https://www.udir.no/laring-og-trivsel/lareplanverket/" rel="noopener">Utdanningsdirektoratet</a>.</p>
+        <p class="fb-open" hidden>Fant du en feil, eller savner du noe? <button class="reset-p" type="button" data-fb>Send tilbakemelding</button></p>
       </div>
       <ul>
-        <li>Ingen informasjonskapsler, innlogging eller sporing.</li>
-        <li>Skrifter og formelverktøy ligger på denne serveren. Ingen data sendes til andre.</li>
+        <li>Ingen informasjonskapsler, innlogging eller reklame.</li>
+        <li>Besøk telles med <a href="https://www.goatcounter.com/" rel="noopener">GoatCounter</a>, som bare lagrer samlede tall og ikke hvem som er inne.</li>
+        <li>Skrifter og formelverktøy ligger på denne serveren.</li>
         <li>Virker uten nett etter første besøk.</li>
       </ul>
     </footer>
   </main>
 </div>
+
+<!-- Tilbakemelding. Sendes til mottaket i verktoy/tilbakemelding/ (Cloudflare Worker). data-url fylles inn av verktoy/tilbakemelding/sett-opp.mjs. Uten adresse vises ikke knappene. -->
+<dialog class="fb" id="fb" aria-labelledby="fbTitle">
+  <form id="fbForm" data-url="" novalidate>
+    <h2 id="fbTitle">Send tilbakemelding</h2>
+    <div class="fb-fields">
+      <p class="fb-intro">Fant du en feil, eller har du en idé til en ny animasjon eller oppgave? Skriv det her, så kommer det rett til den som lager Realfagsrommet.</p>
+      <fieldset class="fb-type"><legend>Hva gjelder det?</legend>
+        <label><input type="radio" name="type" value="Feil" checked> Noe virker ikke</label>
+        <label><input type="radio" name="type" value="Forslag"> Forslag</label>
+        <label><input type="radio" name="type" value="Annet"> Annet</label>
+      </fieldset>
+      <label class="fb-mod" id="fbModL"><input type="checkbox" id="fbMod" checked><span>Gjelder animasjonen <b id="fbModN"></b></span></label>
+      <label class="fl" for="fbMsg">Melding</label>
+      <textarea id="fbMsg" name="message" rows="6" maxlength="4000" required></textarea>
+      <label class="fl" for="fbMail">E-post <span>(valgfritt, hvis du vil ha svar)</span></label>
+      <input id="fbMail" name="email" type="email" autocomplete="email" maxlength="200">
+      <label class="fb-hp" aria-hidden="true">Ikke fyll ut <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off"></label>
+      <p class="fb-note">Ikke skriv navnet ditt eller andre personopplysninger i meldingen. Med meldingen følger hvilken side du var på, verdiene i animasjonen og hvilken nettleser du bruker, så feilen blir lettere å finne. Meldingen lagres hos Cloudflare, og bare den som lager Realfagsrommet kan lese den.</p>
+    </div>
+    <p class="fb-status" id="fbStatus" role="status" aria-live="polite"></p>
+    <div class="fb-btns">
+      <button class="btn" type="submit" id="fbSend">Send</button>
+      <button class="btn ghost" type="button" id="fbClose">Avbryt</button>
+    </div>
+  </form>
+</dialog>
 </body>
 </html>

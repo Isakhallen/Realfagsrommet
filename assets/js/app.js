@@ -182,6 +182,34 @@ function route(){const h=decodeURIComponent(location.hash.slice(1));if(MOD[h])op
 /* ---- tavlemodus ---- */
 function toggleBoard(on){const b=document.body;on=on??!b.classList.contains('board');b.classList.toggle('board',on);try{if(on&&document.documentElement.requestFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});if(!on&&document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}}
 
+/* ---- besøkstelling (GoatCounter) ----
+   count.js lastes med no_onload fordi siden bytter innhold via #-lenker. Hver visning telles her med #-delen i stien,
+   for eksempel /#fy-kast. Bare den første visningen tar med hvor besøkende kom fra (document.referrer). */
+const GC={last:null,n:0};
+function countView(){const gc=window.goatcounter;if(!SITE||!WEB||!gc||!gc.count)return;const h=location.hash;const path=location.pathname+(h&&h!=='#hjem'?h:'');if(path===GC.last)return;GC.last=path;try{gc.count({path,title:document.title,referrer:GC.n++?'':undefined})}catch(e){}}
+
+/* ---- tilbakemelding: sendes til mottaket i verktoy/tilbakemelding/ (Cloudflare Worker) ---- */
+const FB_PH={Feil:'Hva gjorde du, og hva skjedde? For eksempel: «Når jeg setter massen til 0, forsvinner grafen.»',Forslag:'Hva savner du? En ny animasjon, en oppgave, en bedre forklaring …',Annet:'Skriv meldingen din her.'};
+function fbStatus(t,err){const s=$('#fbStatus');s.textContent=t;s.classList.toggle('err',!!err)}
+function fbType(){$('#fbMsg').placeholder=FB_PH[$('#fbForm').elements.type.value]||''}
+function fbClose(){const d=$('#fb');if(d.close)d.close();else d.removeAttribute('open')}
+function openFeedback(){const d=$('#fb'),f=$('#fbForm'),m=Stage.mod;if(f.classList.contains('sent')){f.reset();f.classList.remove('sent');$('#fbClose').textContent='Avbryt'}
+  $('#fbModL').hidden=!m;$('#fbModN').textContent=m?m.title:'';$('#fbMod').checked=!!m;fbStatus('');fbType();
+  if(!d.open){if(d.showModal)d.showModal();else d.setAttribute('open','')}$('#fbMsg').focus()}
+function fbValues(){try{const s=JSON.stringify(Stage.S.p,(k,v)=>typeof v==='number'?+v.toPrecision(6):v);return s.length>1500?s.slice(0,1500)+' …':s}catch(e){return''}}
+async function sendFeedback(e){e.preventDefault();const f=$('#fbForm'),msg=$('#fbMsg').value.trim(),mail=$('#fbMail').value.trim(),b=$('#fbSend');
+  if(msg.length<3){fbStatus('Skriv litt om hva det gjelder først.',true);$('#fbMsg').focus();return}
+  if(mail&&!$('#fbMail').checkValidity()){fbStatus('E-postadressen ser ikke riktig ut. Rett den, eller la feltet stå tomt.',true);$('#fbMail').focus();return}
+  const done=()=>{f.classList.add('sent');fbStatus('Takk! Meldingen er sendt.');$('#fbClose').textContent='Lukk';$('#fbClose').focus()};
+  if(f.elements.botcheck.checked){done();return}
+  const type=f.elements.type.value,m=Stage.mod&&$('#fbMod').checked?Stage.mod:null;
+  const data={type,melding:msg,modul:m?m.id:'',tittel:m?m.title:'',verdier:m?fbValues():'',side:location.href,epost:mail,nettleser:navigator.userAgent,vindu:innerWidth+' × '+innerHeight};
+  b.disabled=true;fbStatus('Sender …');
+  /* Sendes som text/plain, så nettleseren slipper en ekstra CORS-forespørsel først */
+  try{const r=await fetch(f.dataset.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw Object.assign(new Error(j.feil||r.status),{status:r.status});done()}
+  catch(err){console.error('tilbakemelding',err);fbStatus(err.status===429?'Det er sendt mange meldinger herfra den siste timen. Prøv igjen senere.':navigator.onLine===false?'Du er ikke på nett. Meldingen blir liggende her til du prøver igjen.':'Fikk ikke sendt meldingen. Prøv igjen litt senere.',true)}
+  finally{b.disabled=false}}
+
 /* ---- læreplankart ---- */
 function buildPlan(){
   $('#plan').innerHTML=PLAN.map(p=>{const c=COURSES[p.k];return`<div class="pcourse" style="--c:${SUBJ[c.s].c}"><h3>${c.n}</h3><div class="meta">${vgOf(c).toUpperCase()} · ${MODS.filter(m=>m.c.includes(p.k)).length} ANIMASJONER</div>`+p.t.map(([t,ids])=>`<div class="ptopic"><span>${esc(t)}</span><div class="links">${ids.length?ids.filter(id=>MOD[id]).map(id=>`<a href="#${id}">${esc(MOD[id].short||MOD[id].title)}</a>`).join(''):'<span class="none">Ingen animasjon ennå</span>'}</div></div>`).join('')+'</div>'}).join('');
@@ -254,15 +282,22 @@ function boot(){
   cv.addEventListener('pointermove',e=>{const m=Stage.mod,S=Stage.S;if(!m)return;const[x,y]=pos(e);if(Stage.drag){Stage.drag.move&&Stage.drag.move(x,y);e.preventDefault()}else if(e.pointerType==='mouse'){const d=m.pick?m.pick(S,x,y):null;cv.style.cursor=d?'grab':(m.click?'pointer':'default');if(m.hover)m.hover(S,x,y)}});
   const up=()=>{if(Stage.drag){Stage.drag.up&&Stage.drag.up();Stage.drag=null;cv.style.cursor='default'}};
   cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('pointerleave',()=>{if(Stage.mod&&Stage.mod.hover&&!Stage.drag)Stage.mod.hover(Stage.S,-1,-1)});
-  document.addEventListener('keydown',e=>{const tg=e.target;if(tg&&(tg.tagName==='INPUT'&&tg.type!=='range'&&tg.type!=='checkbox'||tg.tagName==='SELECT'||tg.tagName==='TEXTAREA'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;
+  document.addEventListener('keydown',e=>{const tg=e.target;if(document.querySelector('dialog[open]'))return;if(tg&&(tg.tagName==='INPUT'&&tg.type!=='range'&&tg.type!=='checkbox'||tg.tagName==='SELECT'||tg.tagName==='TEXTAREA'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;
     if(e.key==='Escape'&&document.body.classList.contains('board')){toggleBoard(false);return}
     if(!Stage.mod)return;
     if(e.key===' '&&tg.tagName!=='BUTTON'){e.preventDefault();Stage.play=!Stage.play;setPlayIcon()}
     else if(e.key==='r'||e.key==='R')resetMod(true);
     else if(e.key==='t'||e.key==='T')toggleBoard()});
-  window.addEventListener('hashchange',route);
+  /* Tilbakemelding: knappene vises bare når index.html har adressen til mottaket i data-url */
+  const fb=$('#fb');
+  if(fb&&SITE&&$('#fbForm').dataset.url){document.querySelectorAll('.fb-open').forEach(p=>p.hidden=false);
+    document.addEventListener('click',e=>{if(e.target.closest('[data-fb]'))openFeedback()});
+    $('#fbForm').onsubmit=sendFeedback;$('#fbForm').elements.type.forEach(r=>r.onchange=fbType);$('#fbClose').onclick=fbClose;
+    fb.addEventListener('click',e=>{if(e.target===fb)fbClose()})}
+  window.addEventListener('hashchange',()=>{route();countView()});
   if(SITE&&WEB&&'serviceWorker' in navigator)window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
   route();
+  countView();const gcs=$('#goatcounter');if(gcs)gcs.addEventListener('load',countView);
   requestAnimationFrame(tick);
   if(document.fonts&&document.fonts.load){Promise.all(['italic 16px KaTeX_Math','16px KaTeX_Main','16px "JetBrains Mono"','16px "Atkinson Hyperlegible"'].map(f=>document.fonts.load(f).catch(()=>{}))).then(()=>document.fonts.ready).then(()=>{document.querySelectorAll('#gallery canvas').forEach(c=>{if(c._done){c._done=false;thumbQ.push(c)}})})}
 }

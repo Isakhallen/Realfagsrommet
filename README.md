@@ -2,7 +2,7 @@
 
 Interaktive animasjoner i 3Blue1Brown-stil for matematikk, fysikk, kjemi, biologi, naturfag og geografi på Vg1–Vg3. Emnene følger kompetansemålene i LK20.
 
-Nettstedet er helt statisk: bare HTML, CSS, JavaScript, skrifter og bilder. Det trenger ingen database, ingen innlogging og ingen byggesteg for å kjøre. Alt ligger på samme server, så ingen data sendes til Google eller andre.
+Nettstedet er helt statisk: bare HTML, CSS, JavaScript, skrifter og bilder. Det trenger ingen database, ingen innlogging og ingen byggesteg for å kjøre. Skrifter og formelverktøy ligger på samme server. Bare besøkstellingen (GoatCounter) og tilbakemeldingene (Cloudflare) bruker eksterne tjenester, se [Personvern](#personvern).
 
 ## Mappene
 
@@ -20,7 +20,8 @@ Nettstedet er helt statisk: bare HTML, CSS, JavaScript, skrifter og bilder. Det 
 | `assets/bilder/` | Forhåndsbilder som vises når lenker deles |
 | `animasjon/<id>/` | Egen delingsside for hver animasjon (genereres) |
 | `sw.js` | Gjør at siden virker uten nett etter første besøk (genereres) |
-| `verktoy/` | Skript som lager delingssider, sitemap og bilder |
+| `verktoy/` | Skript som lager delingssider, sitemap og bilder, og som henter tilbakemeldinger |
+| `verktoy/tilbakemelding/` | Mottaket for tilbakemeldinger (Cloudflare Worker) og oppsettet for det |
 
 ## Prøve siden på egen maskin
 
@@ -73,9 +74,48 @@ Nettadressen står i `verktoy/config.json`. Den brukes i forhåndsvisningene nå
 
 **Netlify, Cloudflare Pages eller skolens egen server:** Last opp hele mappen som den er. Det trengs ingen spesielle innstillinger.
 
+## Besøkstall
+
+Besøk telles med [GoatCounter](https://www.goatcounter.com). Tallene ligger på <https://isakhallen.goatcounter.com>.
+
+Skriptet står nederst i `<head>` i `index.html`. Siden bytter innhold via `#`-lenker, så skriptet lastes med `no_onload`, og `countView()` i `app.js` teller hver visning selv. I oversikten heter forsiden `/`, en animasjon for eksempel `/#fy-kast`, læreplankartet `/#laereplan` og et tema `/#fag/na/karbon`. Delingssidene i `animasjon/<id>/` sender videre til `/#<id>` og telles der.
+
+GoatCounter teller ikke når siden kjører på `localhost`, så prøving på egen maskin havner ikke i tallene.
+
+## Tilbakemeldinger
+
+Knappene «Send tilbakemelding» (i bunnteksten) og «Si fra om denne animasjonen» (under oppgavene) åpner et skjema der elever og lærere kan melde feil eller komme med forslag. Med meldingen følger animasjonen, verdiene i den, adressen og nettleseren, så feil blir lettere å finne igjen. E-postadresse er valgfritt.
+
+Meldingene lagres i et lite mottak på Cloudflare (gratis): koden ligger i `verktoy/tilbakemelding/worker.js`. Du leser dem ved å hente dem ned til fila `tilbakemeldinger.md` her i mappen:
+
+```
+node verktoy/hent-tilbakemeldinger.mjs
+```
+
+Åpne `tilbakemeldinger.md` i VS Code (Ctrl+Shift+V viser den pent). Nyeste melding står først, og meldinger som har kommet siden forrige henting er merket **Ny**. Fila lages på nytt hver gang, så skriv ikke egne notater i den. Den står i `.gitignore` og blir aldri publisert.
+
+### Sette opp mottaket (én gang)
+
+1. Lag en gratis konto på <https://dash.cloudflare.com/sign-up>.
+2. Kjør dette fra denne mappen:
+
+   ```
+   node verktoy/tilbakemelding/sett-opp.mjs
+   ```
+
+   Skriptet åpner nettleseren så du kan logge inn hos Cloudflare, laster opp mottaket, lager lageret og en lesenøkkel (`verktoy/tilbakemelding/nokkel.txt`), og skriver adressen til mottaket inn i `index.html`. Spør det om en workers.dev-adresse, svar ja.
+3. Publiser nettsiden. Knappene vises først når adressen står i `index.html`.
+
+Kjør skriptet på nytt hvis du endrer `worker.js`. Lesenøkkelen er det eneste som gir tilgang til meldingene. Den står i `.gitignore`, så ikke del den. Mister du den, slett `nokkel.txt` og kjør skriptet igjen.
+
+Mottaket tar bare imot meldinger fra realfagsrommet.no (og `localhost` for testing), og høyst 20 i timen fra samme nettverk. Vil du slette meldinger, gjør du det i Cloudflare-oversikten under *Storage & Databases → Workers KV*.
+
 ## Personvern
 
-Siden bruker ingen informasjonskapsler, ingen analyseverktøy og ingen eksterne tjenester. Avkrysningene i «Prøv dette» lagres bare i elevens egen nettleser (localStorage).
+Siden bruker ingen informasjonskapsler og ingen innlogging. Avkrysningene i «Prøv dette» lagres bare i elevens egen nettleser (localStorage).
+
+- **GoatCounter** lagrer bare samlede tall (sider, henvisninger, nettleser, skjermstørrelse og land), ikke IP-adresser eller hvem som er inne.
+- **Tilbakemeldinger** lagres hos Cloudflare: det som skrives i skjemaet, sammen med animasjonen, adressen og nettleseren. IP-adresser lagres ikke. Bare den som har lesenøkkelen, kan hente meldingene. Skjemaet ber elevene om ikke å skrive navn eller andre personopplysninger, og e-postadresse er valgfritt.
 
 ## Lisenser
 

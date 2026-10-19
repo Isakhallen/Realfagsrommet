@@ -1,0 +1,10 @@
+// Cloudflare Worker som tar imot tilbakemeldinger. Se «Tilbakemeldinger» i README.md.
+// Første gang du kjører «npx wrangler deploy», lages lageret (KV) og id-en skrives inn her automatisk.
+{
+  "name": "realfagsrommet-tilbakemelding",
+  "main": "worker.js",
+  "compatibility_date": "2026-06-01",
+  "kv_namespaces": [
+    { "binding": "TILBAKEMELDINGER" }
+  ]
+}

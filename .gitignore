@@ -1,0 +1,5 @@
+# Tilbakemeldinger og lesenøkkelen skal aldri publiseres (se «Tilbakemeldinger» i README.md)
+tilbakemeldinger.md
+verktoy/tilbakemelding/nokkel.txt
+verktoy/tilbakemelding/.dev.vars
+.wrangler/
