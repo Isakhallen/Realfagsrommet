@@ -65,6 +65,8 @@ Et tema kan lenkes direkte, for eksempel `#fag/na/karbon` for naturfagtemaet om 
 
 ## Publisere
 
+Nettstedet ligger på <https://realfagsrommet.no>. Domenet er kjøpt hos Domeneshop og peker til GitHub Pages: fire A-oppføringer for `@` (185.199.108.153, 185.199.109.153, 185.199.110.153 og 185.199.111.153) og en CNAME-oppføring for `www` til `isakhallen.github.io`. Fila `CNAME` i roten forteller GitHub Pages hvilket domene som brukes. Under *Settings → Pages* skal **Enforce HTTPS** være huket av, ellers vises siden som «Ikke sikker». Sertifikatet skal gjelde både `realfagsrommet.no` og `www.realfagsrommet.no`. Mangler `www`, fjern domenet under *Custom domain*, legg det inn igjen og vent til sertifikatet er laget.
+
 Nettadressen står i `verktoy/config.json`. Den brukes i forhåndsvisningene når lenker deles. Endrer du adressen, kjør `node verktoy/bygg.mjs` på nytt.
 
 **GitHub Pages:** Legg filene i et offentlig repo, gå til *Settings → Pages*, velg grenen `main` og mappen `/ (root)`. Siden blir liggende på `https://<brukernavn>.github.io/<repo>/`, her <https://isakhallen.github.io/Realfagsrommet/>. På gratiskontoer må repoet være offentlig (Public) for at GitHub Pages skal virke.
