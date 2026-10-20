@@ -9,7 +9,7 @@ const TEMA={
   ['integrasjon','Integrasjon, rekker og differensiallikninger',['ma-riemann','ma-fundamental','ma-omdreining','ma-rekker','ma-retningsfelt','fy-fjaer']],
   ['vektorer','Vektorer og parameterframstilling',['ma-vektor','ma-vektor3d','ma-parameter']],
   ['statistikk','Statistikk og sannsynlighet',['ma-statistikk','ma-standardavvik','ma-urne','ma-galton','ma-sgs','ma-hypotese','na-risiko','bi-fangst']]],
- fy:[['bevegelse','Bevegelse og krefter',['fy-bevegelse','fy-newton','fy-friksjon','fy-heis','fy-luftmotstand','fy-strikkhopp','fy-stot','fy-ballistisk','fy-kast','fy-sirkel','fy-gravitasjon']],
+ fy:[['bevegelse','Bevegelse og krefter',['fy-bevegelse','fy-newton','fy-friksjon','fy-system','fy-heis','fy-luftmotstand','fy-strikkhopp','fy-stot','fy-ballistisk','fy-kast','fy-sirkel','fy-gravitasjon']],
   ['energi','Energi, varme og svingninger',['fy-energi','na-energi','fy-varme','fy-varmekapasitet','ki-gass','fy-fjaer','fy-varmepumpe','fy-vindkraft','fy-energikilder']],
   ['elektrisitet','Elektrisitet og magnetisme',['fy-krets','fy-iu','fy-efelt','fy-plater','fy-bfelt','fy-induksjon']],
   ['straling','Stråling, atomer og kjerner',['na-spekter','fy-sortlegeme','fy-overflate','na-drivhus','fy-atommodell','fy-bohr','na-halvering','fy-fusjon','fy-stjerneliv']],

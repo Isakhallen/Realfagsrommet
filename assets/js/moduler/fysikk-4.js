@@ -38,6 +38,109 @@ readout(S){const p=S.p,N=p.m*9.81,muk=Math.min(p.muk,p.mus);const a=S.vx>0?(p.F-
 });
 }
 
+/* ---------- Newtons 2. lov for sammensatte systemer: klosser i snor ---------- */
+{
+const g=9.81,TMAX=8,XMAX=40,FMAX=40;
+/* Klossene er nummerert bakfra: kloss 1 er bakerst, og du drar i den fremste.
+   T[i] er kraften i snora foran kloss i+1, så T[n-1] er F. */
+function forces(p,moving,F){const n=p.n,m=[p.m1,p.m2,p.m3].slice(0,n),Mt=m.reduce((s,x)=>s+x,0),mu=p.mu,T=[],R=[];let a=0;
+ if(moving||F>mu*Mt*g){a=F/Mt-mu*g;let mb=0;m.forEach((mi,i)=>{mb+=mi;R[i]=mu*mi*g;T[i]=F*mb/Mt})}
+ /* i ro: hvilefriksjonen på den fremste klossen tar så mye den kan, resten går videre bakover i snora */
+ else{let t=F;for(let i=n-1;i>=0;i--){T[i]=t;R[i]=Math.min(mu*m[i]*g,t);t-=R[i]}}
+ return{n,m,M:Mt,a,R,T,Rt:R.reduce((s,x)=>s+x,0)}}
+const selOf=p=>p.n===3?p.sys3:p.sys2;
+const pull=S=>S.slack?0:S.p.F;
+const setSel=(S,v)=>{setP('sys3',v,S);setP('sys2',v,S)};
+M({id:'fy-system',s:'fy',c:['FY1'],title:'Newtons 2. lov for sammensatte systemer',short:'Klosser i snor',kw:'newtons andre lov sammensatt system klosser snor snordrag snorkraft kraftdiagram indre krefter ytre krefter friksjon akselerasjon trekkraft kraftmåler newtons tredje lov',
+lead:'Du drar i en snor, og klossene er bundet sammen med snorer. Alle klossene får samme akselerasjon. Se på hele systemet for å finne akselerasjonen, og på én kloss om gangen for å finne kreftene i snorene.',
+hint:'Klikk på en kloss for å se kreftene på akkurat den.',
+controls:[{id:'n',type:'seg',label:'Antall klosser',value:3,options:[[2,'To'],[3,'Tre']]},
+ {id:'sys3',type:'seg',label:'Systemet du ser på',value:'alle',options:[['alle','Alle klossene'],['1','Kloss 1'],['2','Kloss 2'],['3','Kloss 3']],show:S=>S.p.n===3},
+ {id:'sys2',type:'seg',label:'Systemet du ser på',value:'alle',options:[['alle','Alle klossene'],['1','Kloss 1'],['2','Kloss 2']],show:S=>S.p.n===2},
+ {id:'m1',label:'Masse kloss 1 <i>m</i>₁',min:.5,max:5,step:.1,value:2,unit:'kg',d:1},{id:'m2',label:'Masse kloss 2 <i>m</i>₂',min:.5,max:5,step:.1,value:3,unit:'kg',d:1},{id:'m3',label:'Masse kloss 3 <i>m</i>₃',min:.5,max:5,step:.1,value:1,unit:'kg',d:1,show:S=>S.p.n===3},
+ {id:'F',label:'Kraft du drar med <i>F</i>',min:0,max:FMAX,step:1,value:18,unit:'N'},{id:'mu',label:'Friksjonstall <i>μ</i>',min:0,max:.5,step:.01,value:0,d:2},{id:'gn',type:'check',label:'Vis tyngdekraft og normalkraft',value:false},
+ {type:'btns',items:[['Slipp snora',S=>{S.slack=true}],['Start på nytt',S=>MOD['fy-system'].init(S)]]}],
+tex:['\\Sigma F=m\\,a','\\text{alle klossene: }F-R=(m_1+m_2+m_3)\\,a','\\text{kloss 1: }S_1-R_1=m_1\\,a','\\text{kloss 2: }S_2-S_1-R_2=m_2\\,a','\\text{kloss 3: }F-S_2-R_3=m_3\\,a','R=\\mu\\,m\\,g'],
+about:['<strong>Hele systemet:</strong> Ser du på alle klossene under ett, er det bare kraften du drar med, $F$, og friksjonen $R$ fra underlaget som virker utenfra. Snordragene $S_1$ og $S_2$ er <strong>indre krefter</strong>. En snor drar like hardt bakover på klossen foran som framover på klossen bak (Newtons 3. lov), så kreftene i snorene faller bort i kraftsummen.',
+ '<strong>Én kloss:</strong> Klikk på en kloss. Nå er snordragene <strong>ytre krefter</strong> på klossen, og Newtons 2. lov gjelder for den alene. Alle klossene har samme akselerasjon $a$, så du kan bruke $\\Sigma F=m\\,a$ på én kloss for å finne et snordrag.',
+ 'Snora foran må dra alle klossene bak seg, så snordraget er størst lengst fram. Søylene nederst viser hva kraften i hver snor går med til: en del til å gi hver kloss bak akselerasjon ($m\\,a$, mørk del) og en del til å overvinne friksjonen ($R$, lys del).',
+ 'Friksjonen på hver kloss er $R=\\mu mg$, fordi normalkraften er lik tyngden når underlaget er vannrett. Står klossene i ro, er friksjonen bare så stor som trengs. Snorene regnes som masseløse og strekker seg ikke.',
+ 'Trykk «Slipp snora». Da blir alle snordragene null. Uten friksjon glir klossene videre med konstant fart (Newtons 1. lov).'],
+tasks:['To klosser på 2,0 kg og 3,0 kg ligger på et glatt bord og blir dratt med 10 N. Regn ut akselerasjonen og snordraget mellom klossene. Sjekk svaret med animasjonen.','Hvilken snor drar hardest? Forklar ved å se på hvor mye masse hver snor må dra.','Bytt om massene slik at den tyngste klossen er bakerst. Hva skjer med akselerasjonen, og hva skjer med snordragene?','Sett $\\mu=0{,}30$ med tre klosser. Hvor stor må $F$ være for at klossene skal begynne å gli?','Skru friksjonen opp og ned mens klossene glir. Akselerasjonen endrer seg, men snordragene gjør det ikke. Hvorfor?'],
+warm:75,
+init(S){S.x=0;S.u=0;S.tt=0;S.hist=[[0,0]];S.rec=0;S.hold=0;S.slack=false},
+change(S,id){const p=S.p;if(id==='F')S.slack=false;if(id==='sys3')setP('sys2',p.sys3,S);if(id==='sys2')setP('sys3',p.sys2,S);if(id==='n'&&p.n===2&&p.sys3==='3')setSel(S,'alle')},
+click(S,x,y){const G=S._g;if(!G)return;const hit=G.bl.findIndex(r=>x>=r[0]-6&&x<=r[0]+r[2]+6&&y>=r[1]-6&&y<=r[1]+r[3]+6);
+ if(hit<0&&!(x>=G.sb.l&&x<=G.sb.l+G.sb.w&&y>=G.sb.t&&y<=G.sb.t+G.sb.h))return;setSel(S,hit<0||selOf(S.p)===String(hit+1)?'alle':String(hit+1))},
+update(S,dt){if(S.hold>0){S.hold-=dt;if(S.hold<=0)this.init(S);return}const p=S.p,F=pull(S);
+ for(let i=0;i<4;i++){const h=dt/4,f=forces(p,S.u>1e-9,F);S.u=Math.max(0,S.u+f.a*h);S.x+=S.u*h;S.tt+=h}
+ if(S.tt-S.rec>=.05){S.hist.push([S.tt,S.u]);S.rec=S.tt}if(S.tt>=TMAX||S.x>=XMAX)S.hold=1.4},
+draw(S){const p=S.p,n=p.n,F=pull(S),f=forces(p,S.u>1e-9,F),sel=selOf(p),k=sel==='alle'?-1:+sel-1,wide=isWide(S),BC=[C.gold,C.purple,C.pink],fs=wide?12:11;
+ const[sb,bot]=rows(pad(S,wide?26:14,22,30),wide?[1.75,1]:[1.5,1],wide?34:28);
+ /* skala: z for størrelsen på klossene, kp piksler per newton (lik for alle kreftene) */
+ const mv=[S.v.m1,S.v.m2,S.v.m3].slice(0,n),mmax=Math.max(...mv);let z=clamp(sb.w/640,.55,1.3),kp=sb.w*.24/FMAX,fy=sb.t+sb.h*.7;
+ /* G og N tegnes fra midten av klossene og trenger plass både over og under */
+ if(p.gn){const hm=z*(32+14*Math.sqrt(mmax));kp=Math.min(kp,(sb.h-72-hm/2)/(2*g*mmax));fy=sb.t+62+g*mmax*kp+hm/2}
+ const lay=(z,kp)=>{const w=mv.map(m=>z*(46+20*Math.sqrt(m))),h=mv.map(m=>z*(32+14*Math.sqrt(m))),gap=Math.max(56*z,S.v.F*kp+24*z),Lp=Math.max(70*z,S.v.F*kp+30*z),Km=62*z;return{w,h,gap,Lp,Km,tot:w.reduce((s,x)=>s+x,0)+(n-1)*gap+Lp+Km+12*z}};
+ let L=lay(z,kp);if(L.tot>sb.w*.97){const r=sb.w*.97/L.tot;z*=r;kp*=r;L=lay(z,kp)}
+ const xs=[];let xx=sb.l+(sb.w-L.tot)/2;for(let i=0;i<n;i++){xs.push(xx);xx+=L.w[i]+(i<n-1?L.gap:0)}
+ const xf=xx,ys=fy-Math.min(...L.h)/2,ppm=44*z,bg=A(C.stage,.8);S._g={sb,bl:xs.map((x,i)=>[x,fy-L.h[i],L.w[i],L.h[i]])};
+ /* underlaget glir forbi; kameraet følger klossene */
+ ln(sb.l,fy,sb.l+sb.w,fy,A(C.fg,.55),2);
+ for(let q=Math.floor(S.x-(xs[0]-sb.l)/ppm)-1;q<=S.x+(sb.l+sb.w-xs[0])/ppm+1;q++){const px=xs[0]+(q-S.x)*ppm;if(px<sb.l+8||px>sb.l+sb.w)continue;ln(px,fy+1,px-7*z,fy+8*z,A(C.fg,.22),1);if(q%5===0&&q>=0)T(q+' m',px,fy+30,{a:'center',f:'n',s:10.5,c:C.fg3})}
+ /* snorer: rett når de er stramme, slakke når snordraget er null */
+ const rope=(x1,x2,t)=>{X.beginPath();X.moveTo(x1,ys);if(t>.01)X.lineTo(x2,ys);else X.quadraticCurveTo((x1+x2)/2,ys+9*z,x2,ys);X.strokeStyle=A(C.fg,t>.01?.8:.5);X.lineWidth=1.6;X.stroke()};
+ for(let i=0;i<n-1;i++)rope(xs[i]+L.w[i],xs[i+1],f.T[i]);
+ const xk=xf+L.Lp,kh=15*z;rope(xf,xk,F);
+ rr(xk,ys-kh/2,L.Km,kh,kh/2,A(C.fg,.6),A(C.fg,.07),1.3);for(let j=0;j<=5;j++){const tx=xk+kh/2+j*(L.Km-kh)/5;ln(tx,ys-kh/2+2,tx,ys-kh/2+(j%5?5:7)*z,A(C.fg,.45),1)}
+ const ix=xk+kh/2+clamp(F/FMAX,0,1)*(L.Km-kh);ln(ix,ys-kh/2+2,ix,ys+kh/2-2,C.blue,2.4);circ(xk+L.Km+5*z,ys,4.5*z,A(C.fg,.7),null,1.6);T('kraftmåler',xk+L.Km/2,fy+14,{a:'center',s:11,c:C.fg3});
+ for(let i=0;i<n;i++){const c=BC[i];X.globalAlpha=k<0||k===i?1:.35;rr(xs[i],fy-L.h[i],L.w[i],L.h[i],4*z,c,A(c,.28),2);/* navnet står i klossen når det er plass, ellers under */
+  const cx=xs[i]+L.w[i]/2,yc=fy-L.h[i]/2,two=L.h[i]>=40;T(nf(p['m'+(i+1)],1)+' kg',cx,yc+(two?8:0),{a:'center',f:'n',s:Math.max(10.5,12.5*z),c:C.fg});T('kloss '+(i+1),cx,two?yc-9:fy+14,{a:'center',s:11,c});X.globalAlpha=1}
+ /* systemgrensen */
+ const i0=k<0?0:k,i1=k<0?n-1:k,bx0=xs[i0]-10*z,bx1=xs[i1]+L.w[i1]+10*z,btop=fy-Math.max(...L.h.slice(i0,i1+1))-10*z;
+ X.setLineDash([6,5]);rr(bx0,btop,bx1-bx0,fy+6*z-btop,6,A(C.fg,.55),null,1.3);X.setLineDash([]);
+ /* snordragene: indre krefter i par når hele systemet er valgt, ytre krefter når én kloss er valgt */
+ const sl=(i,t)=>'S'+sub(i+1)+(wide?' = '+nf(t,1)+' N':'');
+ for(let i=0;i<n-1;i++){const t=f.T[i],xa=xs[i]+L.w[i],xb=xs[i+1];
+  if(k<0){if(t>.01){arr(xa,ys-5,xa+t*kp,ys-5,A(C.teal,.35),2,8);arr(xb,ys+5,xb-t*kp,ys+5,A(C.teal,.35),2,8)}T('S'+sub(i+1),(xa+xb)/2,ys-17,{a:'center',f:'n',s:fs,c:A(C.teal,.85)})}
+  else if(i===k&&t>.01){arr(xa,ys,xa+t*kp,ys,C.teal,3,10);T(sl(i,t),xa+6,ys-14,{f:'n',s:fs,c:C.teal,bg})}
+  else if(i===k-1&&t>.01){arr(xb,ys,xb-t*kp,ys,C.teal,3,10);T(sl(i,t),xb-6,ys-14,{a:'right',f:'n',s:fs,c:C.teal,bg})}
+  else if(i!==k&&i!==k-1)T('S'+sub(i+1),(xa+xb)/2,ys-17,{a:'center',f:'n',s:fs,c:A(C.teal,.5)})}
+ if((k<0||k===n-1)&&F>0){arr(xf,ys,xf+F*kp,ys,C.blue,3,10);T(wide?'F = '+nf(F,0)+' N':'F',xf+6,ys-14,{f:'n',s:fs,c:C.blue,bg})}
+ for(let i=i0;i<=i1;i++){const cx=xs[i]+L.w[i]/2,Ri=f.R[i];
+  if(Ri>.01){arr(xs[i],fy-4*z,xs[i]-Ri*kp,fy-4*z,C.red,2.6,9);T('R'+sub(i+1)+(k>=0&&wide?' = '+nf(Ri,1)+' N':''),xs[i]-3,fy+14,{a:'right',f:'n',s:fs,c:C.red,bg})}
+  if(p.gn){const N=f.m[i]*g,yc=fy-L.h[i]/2,xn=cx-L.w[i]*.38,xg=cx+L.w[i]*.38;arr(xn,yc,xn,yc-N*kp,C.green,2.6,9);T('N'+sub(i+1),xn-5,yc-N*kp+7,{a:'right',f:'n',s:fs,c:C.green});arr(xg,yc,xg,yc+N*kp,C.grey,2.6,9);T('G'+sub(i+1),xg+5,yc+N*kp-7,{f:'n',s:fs,c:C.grey})}}
+ /* kraftsummen på systemet */
+ const Ms=k<0?f.M:f.m[k],sF=k<0?F-f.Rt:f.T[k]-(k>0?f.T[k-1]:0)-f.R[k],cx=(bx0+bx1)/2,yS=p.gn?sb.t+50:btop-16;
+ if(Math.abs(sF)<.005){dot(cx,yS,4.5,C.yellow);T('ΣF = 0 N',cx+10,yS,{f:'n',s:12.5,w:500,c:C.yellow})}
+ else{arr(cx,yS,cx+sF*kp,yS,C.yellow,3.4,11);T('ΣF = '+nf(sF,Math.abs(sF)<1?2:1)+' N',cx+sF*kp+(sF>0?8:-8),yS,{a:sF>0?'left':'right',f:'n',s:12.5,w:500,c:C.yellow})}
+ T((k<0?'Systemet: alle klossene':'Systemet: kloss '+(k+1))+'  ·  m = '+nf(Ms,1)+' kg',sb.l,sb.t+8,{s:14,w:700});
+ const st=S.slack?(S.u>1e-9?'Snora er sluppet: ingen drar i klossene.':'Snora er sluppet, og klossene står stille.'):S.u<1e-9&&F>0&&f.a<=0?'Klossene står i ro: friksjonen holder igjen.':k<0?'Snordragene er indre krefter og er ikke med i ΣF.':'Nå er snordragene ytre krefter og med i ΣF.';
+ Twrap(st,sb.l,sb.t+27,sb.w,{s:12.5,c:C.fg2});
+ /* søyler: hva kraften i hver snor går med til */
+ const[pb,pv]=wide?cols(bot,[1.25,1],40):[bot];lab(pb,'Hva kraften i hver snor går med til');
+ const bx=pb.l+30,bw=pb.w-30-64,sxN=bw/FMAX,rh=clamp((pb.h-44)/n-9,8,24);
+ for(let r=0;r<n;r++){const y=pb.t+4+r*(rh+9),isF=r===n-1;T(isF?'F':'S'+sub(r+1),pb.l+4,y+rh/2,{f:'n',s:14,c:isF?C.blue:C.teal});
+  let x=bx;for(let j=0;j<=r;j++){const al=k<0||k===j?1:.28,c=BC[j];const seg=(v,o)=>{if(v<=1e-9)return;rct(x,y,v*sxN,rh,null,A(c,o*al));x+=v*sxN};
+   if(f.a>=0){seg(f.m[j]*f.a,.85);seg(f.R[j],.32)}else seg(f.m[j]*f.a+f.R[j],.55);if(j<r)ln(x,y,x,y+rh,C.stage,1.5)}
+  T(nf(f.T[r],1)+' N',x+6,y+rh/2,{f:'n',s:11.5,c:C.fg2})}
+ const ay=pb.t+4+n*(rh+9);ln(bx,ay,bx+bw,ay,A(C.fg,.4),1);for(let v=0;v<=FMAX;v+=10){const x=bx+v*sxN;ln(x,ay,x,ay+4,A(C.fg,.4),1);T(String(v),x,ay+12,{a:'center',f:'n',s:10,c:C.fg3})}T('N',bx+bw+12,ay+12,{f:'n',s:10,c:C.fg3});
+ let lx=bx;const ly=ay+30;for(let j=0;j<n;j++){rct(lx,ly-5,10,10,null,A(BC[j],.85));T('kloss '+(j+1),lx+14,ly,{s:11,c:C.fg2});lx+=24+tw('kloss '+(j+1),{s:11})}
+ if(p.mu>0){rct(lx,ly-5,10,10,null,A(C.fg,.3));T('lys del: friksjon',lx+14,ly,{s:11,c:C.fg2})}
+ /* fartsgraf */
+ if(pv){const ap=Math.max(f.a,0),vm=Math.max(2,ap>0?Math.min(ap*TMAX,Math.sqrt(2*ap*XMAX)):0,...S.hist.map(q=>q[1]))*1.1,st_=niceStep(vm/4),vt=Math.ceil(vm/st_)*st_;
+  const P=Plane(0,TMAX,0,vt,{l:pv.l+34,t:pv.t,w:pv.w-34,h:pv.h-4});P.grid(1,{sy:st_,minor:false,alpha:.07});P.axes({xs:2,ys:st_,x0:true,y0:true,xl:'t (s)',yl:'v (m/s)',ls:12});lab(pv,'Farten (lik for alle klossene)');
+  const H=S.hist.concat([[S.tt,S.u]]);P.clip(()=>pth(H.map(q=>P.pt(q[0],q[1])),C.fg,2.4));dot(P.X(Math.min(S.tt,TMAX)),P.Y(S.u),4.5,C.fg)}},
+readout(S){const p=S.p,f=forces(p,S.u>1e-9,pull(S));const r=[['akselerasjon',nf(f.a,2)+' m/s²','yellow'],['fart',nf(S.u,2)+' m/s']];for(let i=0;i<f.n-1;i++)r.push(['S'+sub(i+1),nf(f.T[i],1)+' N','teal']);if(p.mu>0)r.push(['friksjon i alt',nf(f.Rt,1)+' N','red']);return r},
+live(S){const p=S.p,F=pull(S),f=forces(p,S.u>1e-9,F),sel=selOf(p);
+ if(sel==='alle'){const sf=p.mu>0?`F-R=${tn(F,0)}-${tn(f.Rt,2)}=${tn(F-f.Rt,2)}`:`F=${tn(F,0)}`;
+  return `\\begin{aligned}m&=${f.m.map((_,i)=>'m_'+(i+1)).join('+')}=${tn(f.M,1)}\\ \\text{kg}\\\\\\Sigma F&=${sf}\\ \\text{N}\\\\a&=\\frac{\\Sigma F}{m}=\\frac{${tn(F-f.Rt,2)}}{${tn(f.M,1)}}=${tn(f.a,2)}\\ \\text{m/s}^2\\end{aligned}`}
+ const i=+sel-1,front=i===f.n-1,sy=[front?'F':'S_'+(i+1)],nu=[tn(f.T[i],front?0:2)];if(i>0){sy.push('S_'+i);nu.push(tn(f.T[i-1],2))}if(p.mu>0){sy.push('R_'+(i+1));nu.push(tn(f.R[i],2))}
+ const sF=f.T[i]-(i>0?f.T[i-1]:0)-f.R[i];
+ return `\\begin{aligned}\\Sigma F&=${sy.join('-')}${sy.length>1?'\\\\&='+nu.join('-'):''}=${tn(sF,2)}\\ \\text{N}\\\\m_${i+1}\\,a&=${tn(f.m[i],1)}\\cdot ${tn(f.a,2)}=${tn(f.m[i]*f.a,2)}\\ \\text{N}\\end{aligned}`}
+});
+}
+
 /* ---------- Tilsynelatende vekt i heis ---------- */
 {
 const g=9.81,FL=3,NF=10;
