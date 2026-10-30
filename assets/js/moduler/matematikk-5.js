@@ -68,3 +68,71 @@ readout(S){const R=stat(S.d);return[['n',R.n],['x̄',nn(R.m),'blue'],['sum av av
 live(S){const R=stat(S.d);return`\\begin{aligned}\\sigma&=\\sqrt{\\frac{${R.q.map(tt).join('+')}}{${R.n}}}\\\\&=\\sqrt{${tt(R.v)}}\\approx ${tn(R.s,2)}\\end{aligned}`}
 });
 }
+
+/* ---------- Sparing og lån som geometriske rekker ---------- */
+{
+const kr=v=>nf(v,0)+' kr';
+const kt=k=>nf(k,3).replace(/0+$/,'').replace(/,$/,'');
+const STG=n=>Math.min(.35,3.5/n), DUR=1.1;
+/* betaling j (år 1..n) flyttes til år n (sparing) eller år 0 (lån). h = verdien der, b = hvor høyt den ligger i stabelen, o = rekkefølgen den kommer fram i */
+function calc(p){const n=Math.round(p.n),k=1+p.r/100,spar=p.mode==='spar';
+ const A=spar?p.B:p.L*(k-1)*k**n/(k**n-1),pay=[];let s=0;
+ const ord=[...Array(n)].map((_,i)=>spar?n-i:i+1);
+ ord.forEach((j,o)=>{const h=spar?A*k**(n-j):A/k**j;pay[j]={o,h,b:s};s+=h});
+ return{n,k,spar,A,pay,tot:s,paid:n*A,to:spar?n:0}}
+M({id:'ma-sparing',s:'ma',c:['S2'],title:'Sparing og lån som geometriske rekker',short:'Sparing og lån',kw:'sparing lån innskudd sluttverdi nåverdi annuitet annuitetslån terminbeløp geometrisk rekke rente renters rente økonomi kvotient',
+lead:'Setter du inn like mye hvert år, vokser hvert innskudd med renter fram til slutten. Stabler du innskuddene, får du en geometrisk rekke. Et lån er det samme baklengs: hver betaling er verdt mindre i dag, og til sammen er de verdt akkurat lånebeløpet.',
+hint:'Pek på en søyle for å se hvordan den ble til.',
+controls:[{id:'mode',type:'seg',label:'Vis',value:'spar',options:[['spar','Sparing (sluttverdi)'],['lan','Lån (nåverdi)']]},
+ {id:'B',label:'Innskudd per år',min:1000,max:50000,step:1000,value:10000,fmt:v=>kr(v),show:S=>S.p.mode==='spar'},
+ {id:'L',label:'Lånebeløp',min:50000,max:3000000,step:50000,value:500000,fmt:v=>kr(v),show:S=>S.p.mode==='lan'},
+ {id:'r',label:'Rente per år',min:.5,max:12,step:.1,value:5,unit:'%',d:1},{id:'n',label:'Antall år',min:2,max:30,step:1,value:10,unit:'år'},
+ {type:'btns',items:[['Spill av på nytt',S=>{S.a=0}]]}],
+tex:['k=1+\\frac{p}{100}','\\text{sparing: }S_n=B+Bk+Bk^2+\\dots+Bk^{n-1}=B\\cdot\\frac{k^n-1}{k-1}','\\text{lån: }L=\\frac{A}{k}+\\frac{A}{k^2}+\\dots+\\frac{A}{k^n}=\\frac{A}{k}\\cdot\\frac{1-\\left(\\frac1k\\right)^n}{1-\\frac1k}'],
+about:['<strong>Sparing:</strong> Du setter inn $B$ kroner på slutten av hvert år i $n$ år. Hvert innskudd ganges med vekstfaktoren $k$ for hvert år det står i banken. Det siste innskuddet har ikke rukket å vokse, det første har vokst i $n-1$ år. Stabler vi dem med det minste nederst, får vi en geometrisk rekke med første ledd $B$ og kvotient $k$. Summen kalles <strong>sluttverdien</strong>.','<strong>Lån:</strong> Du låner $L$ kroner i dag og betaler like mye, $A$, på slutten av hvert år i $n$ år. Betalingene skal til sammen være verdt like mye som lånet. En betaling om $j$ år er bare verdt $A/k^j$ i dag, for det er det du måtte satt i banken i dag for å ha $A$ om $j$ år. Det kalles <strong>nåverdien</strong>.','Nåverdiene danner en geometrisk rekke med første ledd $A/k$ og kvotient $1/k$. Summen skal være lik $L$. Løser vi den likningen for $A$, får vi terminbeløpet i et <strong>annuitetslån</strong>: $A=L\\cdot\\frac{k^n(k-1)}{k^n-1}$.','Den stiplede linja viser hva du betaler inn til sammen. Ved sparing er avstanden opp til toppen av stabelen rentene du får. Ved lån er avstanden ned til toppen av stabelen rentene du betaler.'],
+tasks:['Du sparer 10 000 kr i året i 10 år med 5 % rente. Skriv opp de tre første og det siste leddet i rekken. Hva er $a_1$ og $k$?','Regn ut sluttverdien med sumformelen og sjekk svaret i figuren.','Hvor mye mer får du ved å spare i 20 år i stedet for 10? Hvorfor blir det mer enn dobbelt så mye?','Et lån på 500 000 kr skal betales med like store beløp hvert år i 10 år. Renten er 5 %. Sett opp likningen med nåverdier og finn terminbeløpet $A$.','Hvorfor er den øverste søylen i lånestabelen den minste?','Hvor mye betaler du i renter totalt for lånet? Sammenlign med animasjonen «Lån: annuitetslån og serielån».'],
+warm:220,
+init(S){S.a=REDUCED?99:0;S.hj=null},
+change(S,id){S.a=id==='mode'&&!REDUCED?0:99;S.hj=null},
+update(S,dt){S.a+=dt},
+draw(S){const p=S.p,R=calc(p),{n,k,spar,A:amt,pay,tot,paid,to}=R;
+ const b=pad(S,30,46,42),M_=Math.min(150,b.w*.22),g={l:b.l+46,t:b.t,w:b.w-46,h:b.h},su=(g.w-M_)/(n+1.2);
+ const P=spar?Plane(-.6,n+.6+M_/su,0,Math.max(tot,paid)*1.12,g):Plane(-.6-M_/su,n+.6,0,Math.max(tot,paid)*1.12,g);S.P=P;S.R=R;
+ const st=niceStep(P.y1/5);P.grid(1,{sy:st,minor:false,alpha:.07});P.axes({xs:n>15?5:n>8?2:1,ys:st,xAt:P.x0,xf:v=>v<0||v>n?'':nf(v,0),yf:v=>nf(v/1000,0),xl:'år',ls:13,x0:true});
+ lab(g,spar?`Hvert innskudd ganges med ${kt(k)} for hvert år det står i banken  ·  1000 kr`:`Hver betaling deles på ${kt(k)} for hvert år den flyttes tilbake til i dag  ·  1000 kr`);
+ const bw=Math.min(P.sx*.7,46),col=j=>ramp([C.teal,C.blue,C.purple],n>1?(j-1)/(n-1):0),stg=STG(n);
+ /* innbetalt til sammen */
+ const yp=P.Y(paid);ln(P.X(-.5),yp,P.X(n+.5),yp,A(C.fg,.55),1.4,[6,5]);
+ T(`${spar?'innbetalt':'betalt'} til sammen: ${n} · ${kr(amt)} = ${kr(paid)}`,spar?P.X(.3):P.X(n+.4),yp-12,{a:spar?'left':'right',s:12,c:C.fg2,bg:A(C.stage,.75)});
+ /* betalingene der de hører hjemme i tid */
+ for(let j=1;j<=n;j++){const c=col(j),y=P.Y(amt);rct(P.X(j)-bw/2,y,bw,P.Y(0)-y,A(c,S.hj===j?.95:.5),A(c,.12),1.2)}
+ /* betalingene på vei og i stabelen */
+ const q=j=>ease(clamp((S.a-pay[j].o*stg)/DUR,0,1));
+ const at=(j,e)=>{const x=lerp(j,to,e),yrs=Math.abs(x-j);return{x,b:pay[j].b*e,h:spar?amt*k**yrs:amt/k**yrs}};
+ let done=0;for(let j=1;j<=n;j++){const e=q(j);if(e<=0)continue;if(e>=1)done++;const c=col(j),u=at(j,e),hi=S.hj===j;
+  if(e<1||hi){const tr=[];for(let i=0;i<=30;i++){const v=at(j,e*i/30);tr.push(P.pt(v.x,v.b+v.h))}pth(tr,A(c,hi?.9:.45),hi?2:1.4,1,[4,4])}
+  const y1=P.Y(u.b+u.h),y0=P.Y(u.b);rct(P.X(u.x)-bw/2,y1,bw,y0-y1,A(C.stage,.9),A(c,hi?1:.85),1)}
+ /* leddene i rekken og summen */
+ const cx=P.X(to),lx=cx+(spar?1:-1)*(bw/2+8);
+ if(done===n){let last=-1e9;for(let o=0;o<n;o++){const j=spar?n-o:o+1,d=pay[j],ym=P.Y(d.b+d.h/2);if(P.Y(d.b)-P.Y(d.b+d.h)<12||Math.abs(ym-last)<13)continue;last=ym;
+   const e=spar?n-j:j,t=spar&&!e?nf(amt,0):`${nf(amt,0)} ${spar?'·':'/'} ${kt(k)}${e>1?sup(e):''}`;
+   T(t,lx,ym,{a:spar?'left':'right',f:'n',s:11,c:S.hj===j?C.fg:C.fg2})}
+  const yt=P.Y(tot);ln(cx-bw/2-4,yt,cx+bw/2+4,yt,C.yellow,2.4);
+  const s=`${spar?'sluttverdi':'nåverdi = lånet'}: ${kr(tot)}`,w=tw(s,{s:13.5,w:700});T(s,clamp(cx-w/2,P.l+4,P.l+P.w-w-4),yt-14,{s:13.5,w:700,c:C.yellow,bg:A(C.stage,.8)})}
+ /* forklaring for den valgte betalingen */
+ const j=S.hj;if(j&&q(j)>=1){const d=pay[j],e=spar?n-j:j;
+  const L_=spar?[[`Innskudd år ${j}`,C.fg],[`står i banken i ${e} år`,C.fg2],[`${kr(amt)} · ${kt(k)}${sup(e)} = ${kr(d.h)}`,col(j)]]
+   :[[`Betaling år ${j}: ${kr(amt)}`,C.fg],[`flyttes ${e} år tilbake til i dag`,C.fg2],[`${kr(amt)} / ${kt(k)}${sup(e)} = ${kr(d.h)}`,col(j)]];
+  infoBox(spar?P.X(.2):P.X(n+.4)-270,clamp(yp+14,P.t+4,P.Y(amt)-84),L_,{s:12.5})}},
+hover(S,x,y){const P=S.P,R=S.R;if(!P||x<0){S.hj=null;return}const bw=Math.min(P.sx*.7,46);let hit=null;
+ if(Math.abs(x-P.X(R.to))<bw/2+4){const v=P.iy(y);for(let j=1;j<=R.n;j++){const d=R.pay[j];if(v>=d.b&&v<=d.b+d.h)hit=j}}
+ else{const j=Math.round(P.ix(x));if(j>=1&&j<=R.n&&Math.abs(x-P.X(j))<bw/2+4&&y>=P.Y(R.A)-4&&y<=P.Y(0)+4)hit=j}
+ S.hj=hit},
+pick(S,x,y){if(!S.P)return;this.hover(S,x,y);if(S.hj)return{move:(mx,my)=>this.hover(S,mx,my)}},
+readout(S){const R=calc(S.p);return R.spar?[['innskudd B',kr(R.A)],['vekstfaktor k',kt(R.k)],['innbetalt',kr(R.paid)],['sluttverdi',kr(R.tot),'yellow'],['renter du får',kr(R.tot-R.paid),'green']]
+ :[['lånebeløp L',kr(R.tot),'yellow'],['vekstfaktor k',kt(R.k)],['terminbeløp A',kr(R.A)],['betalt til sammen',kr(R.paid)],['renter du betaler',kr(R.paid-R.tot),'red']]},
+live(S){const R=calc(S.p),n=R.n,k=tn(R.k,3).replace(/0+$/,'').replace(/\{,\}$/,''),a=tn(R.A,0),L=tn(R.tot,0);
+ return R.spar?`\\begin{aligned}S_{${n}}&=${a}+\\dots+${a}\\cdot ${k}^{${n-1}}\\\\&=${a}\\cdot\\frac{${k}^{${n}}-1}{${k}-1}\\\\&\\approx ${L}\\end{aligned}`
+  :`\\begin{aligned}${L}&=\\frac{A}{${k}}+\\dots+\\frac{A}{${k}^{${n}}}\\\\A&=${L}\\cdot\\frac{${k}^{${n}}\\,(${k}-1)}{${k}^{${n}}-1}\\\\&\\approx ${a}\\end{aligned}`}
+});
+}

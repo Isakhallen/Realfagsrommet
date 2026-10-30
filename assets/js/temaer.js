@@ -4,9 +4,9 @@
 const TEMA={
  ma:[['funksjoner','Funksjoner og likninger',['ma-lineaer','ma-andregrad','ma-likningssett','ma-logaritme','ma-algoritme','na-programmering']],
   ['geometri','Geometri og trigonometri',['ma-pytagoras','ma-malestokk','ma-trekant','ma-enhetssirkel','ma-trigliking','ma-bevis']],
-  ['vekst','Vekst, økonomi og modeller',['ma-vekstfaktor','ma-lan','ma-logistisk','ma-regresjon','ma-okonomi','ge-befolkning']],
+  ['vekst','Vekst, økonomi og modeller',['ma-vekstfaktor','ma-lan','ma-sparing','ma-logistisk','ma-regresjon','ma-okonomi','ge-befolkning']],
   ['derivasjon','Grenseverdier og derivasjon',['ma-grense','ma-sekant','ma-drofting']],
-  ['integrasjon','Integrasjon, rekker og differensiallikninger',['ma-riemann','ma-fundamental','ma-omdreining','ma-rekker','ma-retningsfelt','fy-fjaer']],
+  ['integrasjon','Integrasjon, rekker og differensiallikninger',['ma-riemann','ma-fundamental','ma-omdreining','ma-rekker','ma-sparing','ma-retningsfelt','fy-fjaer']],
   ['vektorer','Vektorer og parameterframstilling',['ma-vektor','ma-vektor3d','ma-parameter']],
   ['statistikk','Statistikk og sannsynlighet',['ma-statistikk','ma-standardavvik','ma-urne','ma-galton','ma-sgs','ma-hypotese','na-risiko','bi-fangst']]],
  fy:[['bevegelse','Bevegelse og krefter',['fy-bevegelse','fy-newton','fy-friksjon','fy-system','fy-heis','fy-luftmotstand','fy-strikkhopp','fy-stot','fy-ballistisk','fy-kast','fy-sirkel','fy-gravitasjon']],
