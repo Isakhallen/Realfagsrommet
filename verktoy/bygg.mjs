@@ -21,7 +21,7 @@ const scripts = [...index.matchAll(/<script defer src="(assets\/js\/[^"]+)"><\/s
 const ctx = vm.createContext({ console, performance });
 for (const s of scripts) vm.runInContext(rd(s), ctx, { filename: s });
 const SUBJ = { ma: 'Matematikk', fy: 'Fysikk', ki: 'Kjemi', bi: 'Biologi', na: 'Naturfag', ge: 'Geografi' };
-const COURSE = { '1P': 'Matematikk 1P', '1T': 'Matematikk 1T', '2P': 'Matematikk 2P', R1: 'Matematikk R1', S1: 'Matematikk S1', R2: 'Matematikk R2', S2: 'Matematikk S2', FY1: 'Fysikk 1', FY2: 'Fysikk 2', KJ1: 'Kjemi 1', KJ2: 'Kjemi 2', BI1: 'Biologi 1', BI2: 'Biologi 2', NAT: 'Naturfag', GEO: 'Geografi' };
+const COURSE = { '1P': 'Matematikk 1P', '1T': 'Matematikk 1T', '2P': 'Matematikk 2P', R1: 'Matematikk R1', S1: 'Matematikk S1', R2: 'Matematikk R2', S2: 'Matematikk S2', UNI: 'Matematikk utenfor pensum (universitetsnivå)', FY1: 'Fysikk 1', FY2: 'Fysikk 2', KJ1: 'Kjemi 1', KJ2: 'Kjemi 2', BI1: 'Biologi 1', BI2: 'Biologi 2', NAT: 'Naturfag', GEO: 'Geografi' };
 const mods = vm.runInContext('MODS.map(m=>({id:m.id,s:m.s,c:m.c,title:m.title,lead:m.lead||""}))', ctx);
 
 // 2) Gjør TeX og HTML i ingressen om til ren tekst for beskrivelser

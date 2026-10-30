@@ -39,7 +39,7 @@ Hver animasjon er ett kall til `M({...})` i en av filene i `assets/js/moduler/`.
 
 - `id`: kort kode, for eksempel `fy-kast`. Brukes i lenken.
 - `s`: fag (`ma`, `fy`, `ki`, `bi`, `na` eller `ge`).
-- `c`: kurs, for eksempel `['FY2']`, `['1T','R1']`, `['BI1']` eller `['GEO']`.
+- `c`: kurs, for eksempel `['FY2']`, `['1T','R1']`, `['BI1']` eller `['GEO']`. Stoff utenfor pensum (universitetsnivå) får `['UNI']`.
 - `title`, `lead`, `about`, `tex`, `tasks`: tekst, formler og oppgaver. Formler skrives i TeX mellom `$`-tegn.
 - `controls`: glidebrytere, knapper og avkrysningsbokser. Tallet ved hver glidebryter kan skrives inn direkte. To typer felt lar elevene skrive inn egne ting:
   - `{type:'data', label, get(S), set(S, tekst)}`: egne tall eller tallpar. `set` returnerer en feilmelding som tekst, eller `null` når alt gikk bra. Bruk `parseNums(tekst)` for å lese tallene.

@@ -4,13 +4,14 @@ const COURSES={
   '1P':{n:'Matematikk 1P',s:'ma',tr:1},'1T':{n:'Matematikk 1T',s:'ma',tr:1},
   '2P':{n:'Matematikk 2P',s:'ma',tr:2},'R1':{n:'Matematikk R1',s:'ma',tr:2},'S1':{n:'Matematikk S1',s:'ma',tr:2},
   'R2':{n:'Matematikk R2',s:'ma',tr:3},'S2':{n:'Matematikk S2',s:'ma',tr:3},
+  'UNI':{n:'Utenfor pensum',s:'ma',tr:3,vg:'universitetsnivå'},
   'FY1':{n:'Fysikk 1',s:'fy',tr:2},'FY2':{n:'Fysikk 2',s:'fy',tr:3},
   'KJ1':{n:'Kjemi 1',s:'ki',tr:2},'KJ2':{n:'Kjemi 2',s:'ki',tr:3},
   'BI1':{n:'Biologi 1',s:'bi',tr:2},'BI2':{n:'Biologi 2',s:'bi',tr:3},
   'NAT':{n:'Naturfag',s:'na',tr:1},'GEO':{n:'Geografi',s:'ge',tr:1,trs:[1,2]}};
-const SHORT={FY1:'Fy1',FY2:'Fy2',KJ1:'Kj1',KJ2:'Kj2',BI1:'Bi1',BI2:'Bi2',NAT:'Nat',GEO:'Geo'};
+const SHORT={UNI:'Uni',FY1:'Fy1',FY2:'Fy2',KJ1:'Kj1',KJ2:'Kj2',BI1:'Bi1',BI2:'Bi2',NAT:'Nat',GEO:'Geo'};
 const trOf=c=>c.trs||[c.tr];
-const vgOf=c=>c.trs?'Vg'+c.trs.join('–'):'Vg'+c.tr;
+const vgOf=c=>c.vg||(c.trs?'Vg'+c.trs.join('–'):'Vg'+c.tr);
 const sc=k=>SHORT[k]||k;
 /* Kjører siden som vanlig nettside (index.html har data-site="1") eller som Claude-artefakt? */
 const SITE=document.documentElement.dataset.site==='1';
