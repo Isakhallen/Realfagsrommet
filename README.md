@@ -84,7 +84,7 @@ GoatCounter teller ikke når siden kjører på `localhost`, så prøving på ege
 
 ## Tilbakemeldinger
 
-Knappene «Send tilbakemelding» (i bunnteksten) og «Si fra om denne animasjonen» (under oppgavene) åpner et skjema der elever og lærere kan melde feil eller komme med forslag. Med meldingen følger animasjonen, verdiene i den, adressen og nettleseren, så feil blir lettere å finne igjen. E-postadresse er valgfritt.
+Knappen «Tilbakemelding» nede i høyre hjørne (skjult i tavlemodus), «Send tilbakemelding» i bunnteksten og «Si fra om denne animasjonen» under oppgavene åpner alle et skjema der elever og lærere kan melde feil eller komme med forslag. Med meldingen følger animasjonen, verdiene i den, adressen og nettleseren, så feil blir lettere å finne igjen. E-postadresse er valgfritt.
 
 Meldingene lagres i et lite mottak på Cloudflare (gratis): koden ligger i `verktoy/tilbakemelding/worker.js`. Du leser dem ved å hente dem ned til fila `tilbakemeldinger.md` her i mappen:
 

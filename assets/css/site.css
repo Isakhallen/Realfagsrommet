@@ -265,9 +265,13 @@ noscript p{max-width:60ch;margin:40px auto;padding-inline:16px;color:var(--fg-2)
 .fb .btn:disabled{opacity:.6;cursor:progress}
 .fb form.sent .fb-fields,.fb form.sent #fbSend{display:none}
 .fb form.sent .fb-status{font:500 1.15rem/1.3 var(--f-display);color:var(--green);margin-top:4px}
+/* Fast knapp nede til høyre. Under toppfeltet og emnemenyen (z-index 30/40), så menyen dekker den på mobil. */
+.fb-fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:20;display:inline-flex;align-items:center;gap:8px;padding:9px 15px 9px 12px;background:var(--bg-3);color:var(--fg);border:1px solid var(--line-2);border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.fb-fab svg{color:var(--yellow);flex:none}
+.fb-fab:hover{border-color:var(--yellow)}
 
 /* ---------- tavlemodus ---------- */
-body.board .side,body.board .top .subj-tabs,body.board .top .search,body.board .lead,body.board .notes,body.board .prevnext,body.board .crumbs,body.board .foot{display:none}
+body.board .side,body.board .top .subj-tabs,body.board .top .search,body.board .lead,body.board .notes,body.board .prevnext,body.board .crumbs,body.board .foot,body.board .fb-fab{display:none}
 body.board .shell{grid-template-columns:minmax(0,1fr);max-width:none}
 body.board main{padding-block:10px 20px}
 body.board .mod-head h1{font-size:1.6rem;margin:4px 0 10px}
@@ -304,5 +308,8 @@ body.board .stage{aspect-ratio:auto;height:calc(100vh - 150px);max-height:none}
   .courses{grid-template-columns:minmax(0,1fr)}
   .hint{max-width:calc(100% - 140px)}
   body.board .stage{height:auto;aspect-ratio:1/1.12}
+  /* Bare ikonet på mobil. Teksten blir liggende for skjermlesere. */
+  .fb-fab{padding:12px}
+  .fb-fab span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}

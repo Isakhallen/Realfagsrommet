@@ -190,8 +190,10 @@
 </div>
 
 <!-- Tilbakemelding. Sendes til mottaket i verktoy/tilbakemelding/ (Cloudflare Worker). data-url fylles inn av verktoy/tilbakemelding/sett-opp.mjs. Uten adresse vises ikke knappene. -->
+<button class="fb-fab fb-open" type="button" data-fb hidden title="Meld fra om feil eller kom med forslag">
+  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3.5h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-3.5 3v-3H3a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M5.5 7h7M5.5 9.5h4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>Tilbakemelding</span></button>
 <dialog class="fb" id="fb" aria-labelledby="fbTitle">
-  <form id="fbForm" data-url="" novalidate>
+  <form id="fbForm" data-url="https://realfagsrommet-tilbakemelding.realfagsrommet.workers.dev/" novalidate>
     <h2 id="fbTitle">Send tilbakemelding</h2>
     <div class="fb-fields">
       <p class="fb-intro">Fant du en feil, eller har du en idé til en ny animasjon eller oppgave? Skriv det her, så kommer det rett til den som lager Realfagsrommet.</p>
