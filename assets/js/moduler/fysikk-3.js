@@ -145,3 +145,87 @@ draw(S){const[bl,br]=split(S,.42,{g:30,b:pad(S,26,30,40)});const R=Math.min(bl.w
 readout(S){const st=this.stats(S);if(!st)return[['målinger',0]];return[['målinger',st.n],['snitt',nf(st.m,3)+' m/s²','yellow'],['standardavvik',isFinite(st.s)?nf(st.s,3):'–'],['s/√n',isFinite(st.se)?nf(st.se,3):'–'],['avvik fra 9,81',nf(st.m-G,3),'green']]}
 });
 }
+
+/* ---------- Euler, Euler-Cromer og RK4 ---------- */
+{
+/* Tilstand s = [posisjoner..., farter...]. acc(s) gir akselerasjonen ut fra posisjonene. */
+const GM=4*PI*PI,KM=4*PI*PI; /* fjær: m = 1 kg, k = 4π² N/m gir T = 1 s */
+const SYS={
+ fjaer:{T:1,tmax:10,rate:1,u:'s',y:'x',yu:'m',ys:.1,xs:1,ylo:-.34,yhi:.34,
+  s0:()=>[.2,0],acc:s=>[-KM*s[0]],E:s=>.5*s[1]*s[1]+.5*KM*s[0]*s[0],obs:s=>s[0]},
+ bane:{T:Math.pow(1/(2-.64),1.5),tmax:4,rate:.35,u:'år',y:'r',yu:'AE',ys:.5,xs:.5,ylo:0,yhi:2.2,
+  s0:()=>[1,0,0,.8*TAU],acc:s=>{const r=Math.hypot(s[0],s[1]),r3=r*r*r;return[-GM*s[0]/r3,-GM*s[1]/r3]},
+  E:s=>.5*(s[2]*s[2]+s[3]*s[3])-GM/Math.hypot(s[0],s[1]),obs:s=>Math.hypot(s[0],s[1])}};
+const STEP={
+ eu:(f,s,h)=>{const d=s.length/2,a=f(s),o=s.slice();for(let i=0;i<d;i++){o[i]=s[i]+s[i+d]*h;o[i+d]=s[i+d]+a[i]*h}return o},
+ ec:(f,s,h)=>{const d=s.length/2,a=f(s),o=s.slice();for(let i=0;i<d;i++){o[i+d]=s[i+d]+a[i]*h;o[i]=s[i]+o[i+d]*h}return o},
+ rk:(f,s,h)=>{const d=s.length/2,D=q=>q.slice(d).concat(f(q)),ad=(q,k,c)=>q.map((x,i)=>x+k[i]*c);
+  const k1=D(s),k2=D(ad(s,k1,h/2)),k3=D(ad(s,k2,h/2)),k4=D(ad(s,k3,h));return s.map((x,i)=>x+h/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]))}};
+const METH=[['eu','Euler','yellow','veu'],['ec','Euler-Cromer','green','vec'],['rk','RK4','blue','vrk']];
+/* Nøyaktig løsning: RK4 med svært små steg, regnet ut én gang per system */
+const REF={};
+function ref(k){if(REF[k])return REF[k];const sy=SYS[k],h=sy.T/4000,n=Math.ceil(sy.tmax/h)+8;let s=sy.s0();const a=[s];for(let i=0;i<n;i++){s=STEP.rk(sy.acc,s,h);a.push(s)}return REF[k]={h,a}}
+function exact(k,t){const r=ref(k),u=clamp(t/r.h,0,r.a.length-1.001),i=Math.floor(u),f=u-i,p=r.a[i],q=r.a[i+1];return p.map((x,j)=>x+(q[j]-x)*f)}
+const pct=v=>!isFinite(v)?'–':(Math.abs(v)>=.01||v===0?nf(v,2):nfs(v,2))+' %';
+M({id:'fy-numerikk',s:'fy',c:['FY1','FY2'],title:'Euler, Euler-Cromer og RK4',short:'Euler, Euler-Cromer og RK4',kw:'euler euler-cromer eulercromer runge-kutta rk4 numerisk metode numeriske metoder tidssteg energibevaring programmering python fjær svingning planetbane bane differensiallikning simulering',
+lead:'Tre numeriske metoder regner ut den samme bevegelsen steg for steg. Med Eulers metode vokser energien, med Euler-Cromer holder den seg nesten fast, og RK4 treffer nesten helt. Sammenlign dem på en fjær og en planetbane.',
+hint:'Endre tidssteget, og skru metodene av og på.',
+controls:[{id:'sys',type:'seg',label:'System',value:'fjaer',options:[['fjaer','Fjær'],['bane','Planetbane']]},
+ {id:'dts',label:'Tidssteg Δ<i>t</i>',min:.005,max:.25,log:true,value:.02,unit:'s',d:3,show:S=>S.p.sys==='fjaer'},
+ {id:'dtb',label:'Tidssteg Δ<i>t</i>',min:.002,max:.1,log:true,value:.01,unit:'år',d:3,show:S=>S.p.sys==='bane'},
+ {id:'sp',label:'Tempo',min:.1,max:3,log:true,value:1,fmt:v=>nf(v,v<1?2:1)+' ×'},
+ {id:'veu',type:'check',label:'Euler',value:true},{id:'vec',type:'check',label:'Euler-Cromer',value:true},{id:'vrk',type:'check',label:'RK4',value:true},
+ {type:'btns',items:[['Start på nytt',S=>MOD['fy-numerikk'].reset(S)]]}],
+tex:['v_{n+1}=v_n+a_n\\,\\Delta t','\\cY{\\text{Euler: }}x_{n+1}=x_n+\\cY{v_n}\\,\\Delta t','\\cG{\\text{Euler-Cromer: }}x_{n+1}=x_n+\\cG{v_{n+1}}\\,\\Delta t','\\cB{\\text{RK4: }}y_{n+1}=y_n+\\tfrac{\\Delta t}{6}\\left(k_1+2k_2+2k_3+k_4\\right)','E_{\\text{fjær}}=\\tfrac12mv^2+\\tfrac12kx^2','E_{\\text{bane}}=\\tfrac12mv^2-\\frac{GMm}{r}'],
+about:['Alle tre metodene starter med samme posisjon og fart og bruker samme tidssteg $\\Delta t$. Den stiplede kurven og de stiplede omrissene viser den nøyaktige løsningen.',
+ '<strong>Eulers metode</strong> bruker farten og akselerasjonen fra starten av hvert steg. I en svingning havner den litt for langt ut hver gang, så energien vokser for hvert steg. Svingningen og planetbanen blir større og større.',
+ '<strong>Euler-Cromer</strong> er nesten det samme programmet. Den eneste forskjellen er at farten oppdateres først, og at den nye farten brukes når posisjonen flyttes. Da vokser ikke energien, den bare vipper litt opp og ned. Derfor er metoden mye brukt i fysikkprogrammer.',
+ '<strong>RK4</strong> (Runge-Kutta av fjerde orden) regner ut akselerasjonen fire ganger per steg og tar et veid snitt av dem. Hvert steg krever mer regning, men feilen blir svært liten. Halverer du tidssteget, blir feilen omtrent 16 ganger mindre.',
+ 'Den nederste grafen viser hvor mange prosent energien har endret seg siden starten. Energien skal være bevart, så avviket viser hvor god metoden er. Fjæra har $m=1$ kg og $k=4\\pi^2$ N/m, så svingetiden er 1 s. I planetbanen er $GM=4\\pi^2$ AE³/år², og planeten starter 1 AE fra sola.'],
+tasks:['Se på fjæra med $\\Delta t=0{,}02$ s. Hvor stort er energiavviket for hver av metodene etter 10 s?','Halver tidssteget. Hvor mange ganger mindre blir avviket for hver metode?','Velg planetbanen og vis bare Euler-Cromer. Banen lukker seg nesten, men dreier litt for hver runde. Hva skjer med dreiningen når du gjør tidssteget mindre?','RK4 regner ut kraften fire ganger per steg. Sammenlign RK4 med $\\Delta t=0{,}08$ s og Euler-Cromer med $\\Delta t=0{,}02$ s. Da gjør de like mye regning. Hvilken er best?'],
+init(S){this.reset(S)},
+change(S,id){if(id==='sys'||id==='dts'||id==='dtb')this.reset(S)},
+reset(S){const k=S.p.sys,sy=SYS[k];S.k=k;S.h=k==='fjaer'?S.p.dts:S.p.dtb;S.n=0;S.tt=0;S.acc=0;S.done=false;const s0=sy.s0();S.E0=sy.E(s0);
+ S.stride=Math.max(1,Math.ceil(sy.tmax/S.h/1500));S.m={};for(const[id]of METH)S.m[id]={s:s0.slice(),dead:null,err:0,hist:[[0,sy.obs(s0),0]],tr:[[s0[0],s0[1]]]}},
+step(S){const sy=SYS[S.k];S.n++;S.tt=S.n*S.h;
+ for(const[id]of METH){const m=S.m[id];if(m.dead!==null)continue;m.s=STEP[id](sy.acc,m.s,S.h);const err=(sy.E(m.s)-S.E0)/Math.abs(S.E0)*100;m.err=err;const r=sy.obs(m.s);
+  if(!isFinite(err)||Math.abs(err)>1e7||S.k==='bane'&&(r<.02||r>12))m.dead=S.tt;
+  if(S.n%S.stride===0||m.dead!==null){m.hist.push([S.tt,r,err]);m.tr.push([m.s[0],m.s[1]])}}
+ if(S.tt>=SYS[S.k].tmax-1e-9)S.done=true},
+update(S,dt){if(S.k!==S.p.sys)this.reset(S);if(S.done)return;const sy=SYS[S.k];S.acc+=dt*sy.rate*S.p.sp;let g=0;while(S.acc>=S.h&&!S.done&&g<5000){S.acc-=S.h;this.step(S);g++}if(g>=5000)S.acc=0},
+draw(S){if(S.k!==S.p.sys)this.reset(S);const sy=SYS[S.k],k=S.k,wide=isWide(S),ex=exact(k,S.tt);
+ const b=pad(S,26,30,40);const[bl,br]=split(S,wide?.44:.5,{b,g:wide?34:40,rv:.42});const showCode=wide&&bl.h>380;const[bv,bc]=showCode?rows(bl,[1.45,1],38):[bl,null];
+ const vis=METH.filter(mm=>S.p[mm[3]]);
+ /* system */
+ if(k==='fjaer'){const rs=rows(bv,[1,1,1],16);lab(bv,'Tre fjærer, regnet ut med hver sin metode');
+  METH.forEach(([id,nm,col,v],i)=>{const r=rs[i],on=S.p[v],c=C[col],al=on?1:.25,m=S.m[id];const bh=Math.min(r.h*.6,34),bw=bh*1.15,cy=r.t+r.h*.62;const wx=r.l+4,xc=r.l+r.w*.5,sc=r.w*.3/.2;
+   X.globalAlpha=al;rct(wx-6,cy-bh*.8,6,bh*1.6,null,A(C.fg,.35));ln(r.l,cy+bh/2+2,r.l+r.w,cy+bh/2+2,A(C.fg,.3),1);ln(xc,cy-bh*.7,xc,cy+bh/2+2,A(C.fg,.25),1,[3,4]);
+   const xpos=x=>clamp(xc+x*sc,wx+bw*.6,r.l+r.w-bw*.6);const gx=xpos(ex[0]);X.setLineDash([4,4]);rr(gx-bw/2,cy-bh/2,bw,bh,4,A(C.fg,.55),null,1.4);X.setLineDash([]);
+   const bx=xpos(m.s[0]),out=Math.abs(xc+m.s[0]*sc-bx)>1;const L=bx-bw/2-wx,nC=12,pts=[[wx,cy]];for(let j=0;j<=nC;j++){const xx=wx+6+(L-10)*j/nC;pts.push([xx,cy+(j===0||j===nC?0:(j%2?1:-1)*bh*.28)])}pts.push([bx-bw/2,cy]);pth(pts,mix(C.teal,C.fg,.25),2);
+   rr(bx-bw/2,cy-bh/2,bw,bh,4,c,A(c,.35),2);if(out)T(m.s[0]>0?'▶':'◀',m.s[0]>0?bx+bw/2+8:bx-bw/2-8,cy,{a:'center',s:12,c});
+   T(nm,r.l,r.t+8,{s:13,w:600,c});T(m.dead!==null?'eksplodert':'x = '+nf(m.s[0],3)+' m',r.l+r.w,r.t+8,{a:'right',f:'n',s:12,c:on?C.fg2:C.fg3});X.globalAlpha=1})}
+ else{const P=Plane(-1.75,2.25,-1.55,1.55,bv,true);lab(bv,'Planet rundt sola, regnet ut med hver av metodene');const R=ref(k);const per=[];for(let i=0;i*R.h<=sy.T+R.h;i+=20)per.push(P.pt(R.a[i][0],R.a[i][1]));pth(per,A(C.fg,.45),1.4,1,[5,5]);
+  glow(P.X(0),P.Y(0),26,C.yellow,.5);dot(P.X(0),P.Y(0),8,C.yellow);circ(P.X(ex[0]),P.Y(ex[1]),7,A(C.fg,.7),null,1.4);
+  P.clip(()=>{for(const[id,nm,col,v]of vis){const m=S.m[id],c=C[col];const tr=m.tr.map(q=>P.pt(q[0],q[1]));tr.push(P.pt(m.s[0],m.s[1]));pth(tr,A(c,.75),1.8);if(m.dead===null)dot(P.X(m.s[0]),P.Y(m.s[1]),5.5,c)}});
+  let ly=bv.t+10;for(const[id,nm,col,v]of METH){const m=S.m[id];X.globalAlpha=S.p[v]?1:.3;dot(bv.l+6,ly,4.5,C[col]);T(nm+(m.dead!==null?(Math.hypot(m.s[0],m.s[1])>1?': forsvant ut i rommet':': krasjet i sola'):''),bv.l+16,ly,{s:12.5,c:C[col]});ly+=19}X.globalAlpha=1;
+  circ(bv.l+6,ly,4.5,A(C.fg,.7),null,1.4);T('nøyaktig',bv.l+16,ly,{s:12.5,c:C.fg2})}
+ /* koden */
+ if(bc){frame(bc);lab(bc,'Programmet, ett steg (Python)');const fs=clamp(bc.w/38,9.5,12.5),lh=fs*1.55;const cw=bc.w/3;
+  const code=[['Euler','yellow',['a = F(x)/m','x = x + v*dt','v = v + a*dt']],['Euler-Cromer','green',['a = F(x)/m','v = v + a*dt','x = x + v*dt']],['RK4','blue',['k1 = f(y)','k2 = f(y + k1*dt/2)','k3 = f(y + k2*dt/2)','k4 = f(y + k3*dt)','y = y + dt/6*(k1+2*k2','        +2*k3+k4)']]];
+  code.forEach(([nm,col,ls],i)=>{const x=bc.l+10+i*cw;T(nm,x,bc.t+16,{s:fs+.5,w:600,c:C[col]});ls.forEach((l,j)=>T(l,x,bc.t+16+(j+1.3)*lh,{f:'n',s:i===2?fs*.88:fs,c:C.fg2}))});
+  Twrap('Euler og Euler-Cromer har de samme linjene, bare i ulik rekkefølge. RK4 regner ut kraften fire ganger per steg.',bc.l+10,bc.t+bc.h-2*fs*1.3-6,bc.w-20,{s:fs,c:C.fg3})}
+ /* grafer */
+ const[g1,g2]=rows({l:br.l+34,t:br.t,w:br.w-34,h:br.h},[1,1],48);
+ const P1=Plane(0,sy.tmax,sy.ylo,sy.yhi,g1);P1.grid(sy.xs,{sy:sy.ys,minor:false,alpha:.08});P1.axes({xs:sy.xs,ys:sy.ys,xl:'t ('+sy.u+')',yl:sy.y+' ('+sy.yu+')',ls:13,x0:true});lab({l:br.l,t:g1.t},k==='fjaer'?'Posisjon':'Avstand fra sola');
+ P1.fn(t=>sy.obs(exact(k,t)),A(C.fg,.55),1.6,{to:Math.max(S.tt,1e-6),prog:1,dash:[5,4]});
+ P1.clip(()=>{for(const[id,nm,col]of vis){const m=S.m[id];const pts=m.hist.map(q=>P1.pt(q[0],q[1]));if(m.dead===null)pts.push(P1.pt(S.tt,sy.obs(m.s)));pth(pts,C[col],2)}});
+ let ym=0;for(const[id]of vis)for(const q of S.m[id].hist)if(isFinite(q[2]))ym=Math.max(ym,Math.abs(q[2]));for(const[id]of vis){const e=S.m[id].err;if(isFinite(e))ym=Math.max(ym,Math.abs(e))}
+ ym=Math.min(Math.max(ym*1.15,.1),200);const ys=niceStep(ym/2);ym=Math.ceil(ym/ys-1e-9)*ys;
+ const P2=Plane(0,sy.tmax,-ym,ym,g2);P2.grid(sy.xs,{sy:ys,minor:false,alpha:.08});P2.axes({xs:sy.xs,ys,xl:'t ('+sy.u+')',ls:13,x0:true,y0:true});lab({l:br.l,t:g2.t},'Endring i energi (%)');
+ P2.clip(()=>{for(const[id,nm,col]of vis){const m=S.m[id];const pts=m.hist.map(q=>P2.pt(q[0],clamp(q[2],-ym*3,ym*3)));if(m.dead===null)pts.push(P2.pt(S.tt,clamp(m.err,-ym*3,ym*3)));pth(pts,C[col],2)}});
+ for(const[id,nm,col]of vis){const e=S.m[id].err;if(Math.abs(e)>ym)T(e>0?'▲ '+nm:'▼ '+nm,P2.X(Math.min(S.tt,sy.tmax))-4,e>0?P2.t+10:P2.t+P2.h-10,{a:'right',s:11,c:C[col]})}
+ ln(P1.X(S.tt),P1.t,P1.X(S.tt),P1.t+P1.h,A(C.fg,.25),1);ln(P2.X(S.tt),P2.t,P2.X(S.tt),P2.t+P2.h,A(C.fg,.25),1);
+ if(S.done)T('Ferdig. Trykk «Start på nytt» for å kjøre igjen.',P2.l+P2.w,P2.t+P2.h+30,{a:'right',s:11.5,c:C.fg3})},
+readout(S){const sy=SYS[S.k];const o=[['t',nf(S.tt,2)+' '+sy.u],['Δt',nfs(S.h,3)+' '+sy.u],['steg',S.n]];for(const[id,nm,col]of METH){const m=S.m[id];o.push(['energi, '+nm,m.dead!==null?(S.k==='bane'?'ute av banen':'eksplodert'):pct(m.err),col])}return o}
+});
+}

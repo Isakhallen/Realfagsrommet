@@ -15,7 +15,7 @@ const TEMA={
   ['elektrisitet','Elektrisitet og magnetisme',['fy-krets','fy-iu','fy-efelt','fy-plater','fy-bfelt','fy-induksjon']],
   ['straling','Stråling, atomer og kjerner',['na-spekter','fy-sortlegeme','fy-overflate','na-drivhus','fy-atommodell','fy-bohr','na-halvering','fy-fusjon','fy-stjerneliv']],
   ['moderne','Relativitet og kvantefysikk',['fy-relativitet','fy-kvante','fy-foto']],
-  ['metode','Forsøk, måleusikkerhet og programmering',['na-metode','fy-usikkerhet','na-programmering']]],
+  ['metode','Forsøk, måleusikkerhet og programmering',['na-metode','fy-usikkerhet','na-programmering','fy-numerikk']]],
  ki:[['atomer','Atomer, periodesystemet og binding',['ki-atom','ki-periodesystem','fy-bohr','ki-binding','ki-vsepr','na-stoffegenskaper']],
   ['stoffmengde','Stoffmengde, gasser og løsninger',['ki-stokiometri','ki-konsentrasjon','ki-gass','ki-ksp']],
   ['syrer','Syrer, baser og pH',['ki-ph','ki-titrering','na-havforsuring']],
