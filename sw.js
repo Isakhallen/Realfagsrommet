@@ -1,6 +1,6 @@
 // Generert av verktoy/bygg.mjs – ikke rediger for hånd.
 // Offline-støtte: henter alltid fra nettet først, og bruker lagret kopi bare når nettet svikter.
-const VERSION = 'rfr-4bda34561f';
+const VERSION = 'rfr-106055cec3';
 const PRECACHE = ["./",
   "index.html",
   "favicon.svg",
@@ -42,6 +42,12 @@ const PRECACHE = ["./",
   "assets/js/moduler/naturfag-4.js",
   "assets/js/moduler/naturfag-5.js",
   "assets/js/moduler/naturfag.js",
+  "assets/js/oppgaver/biologi.js",
+  "assets/js/oppgaver/fysikk.js",
+  "assets/js/oppgaver/geografi.js",
+  "assets/js/oppgaver/kjemi.js",
+  "assets/js/oppgaver/matematikk.js",
+  "assets/js/oppgaver/naturfag.js",
   "assets/js/temaer.js",
   "assets/vendor/katex/fonts/KaTeX_AMS-Regular.woff2",
   "assets/vendor/katex/fonts/KaTeX_Caligraphic-Bold.woff2",

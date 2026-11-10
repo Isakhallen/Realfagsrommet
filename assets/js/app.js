@@ -26,6 +26,10 @@ const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v)
 const TEXMAC={'\\cB':'\\textcolor{58C4DD}{#1}','\\cY':'\\textcolor{F4D345}{#1}','\\cR':'\\textcolor{FC6255}{#1}','\\cG':'\\textcolor{83C167}{#1}','\\cT':'\\textcolor{5CD0B3}{#1}','\\cO':'\\textcolor{F0AC5F}{#1}','\\cP':'\\textcolor{B189C6}{#1}','\\cK':'\\textcolor{E07AC8}{#1}'};
 function texHTML(s,display){if(window.katex){try{return katex.renderToString(s,{displayMode:display,throwOnError:false,macros:Object.assign({},TEXMAC)})}catch(e){}}return`<span class="rawtex">${esc(s)}</span>`}
 const inl=html=>String(html).replace(/\$([^$]+)\$/g,(m,t)=>texHTML(t,false));
+/* som inl, men $$...$$ blir en egen formellinje */
+const blk=html=>inl(String(html).replace(/\$\$([^$]+)\$\$/g,(m,t)=>texHTML(t,true)));
+/* avsnitt i løsningsforslag: kodeblokker (<pre>) står som de er, alt annet blir <p> med formler */
+const para=s=>/^<pre[\s>]/.test(s)?s:`<p>${blk(s)}</p>`;
 
 /* ---- filtre ---- */
 const F={s:null,tr:null,c:null,t:null,q:''};
@@ -141,6 +145,33 @@ function changeP(c,v){const S=Stage.S;S.p[c.id]=v;if(c.type)ZV.chk=true;S.touche
 function syncCtl(id){const el=ctlEls[id];if(!el)return;const c=el._c,v=Stage.S.p[id];if(c.type==='seg')el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)));else if(c.type==='sel')el.querySelector('select').value=v;else if(c.type==='check')el.querySelector('input').checked=!!v;else if(!c.type){const inp=el.querySelector('input[type=range]');inp.value=toSl(c,v);fillPct(c,inp);const n=el.querySelector('.num');if(document.activeElement!==n)n.value=fmtCtl(c,v)}refreshShow()}
 function refreshShow(){for(const el of $('#ctrls').children){const c=el._c;if(c&&c.show)el.hidden=!c.show(Stage.S)}}
 
+/* ---- oppgaver i tre nivåer ----
+   Ligger i assets/js/oppgaver/<fag>.js og lastes først når en animasjon i faget åpnes.
+   Hver fil kaller OPPG(id,{lett:[...],middels:[...],vanskelig:[...]}), der hver oppgave er
+   {q:'oppgaven', hint:'hint', losning:['avsnitt', ...]}. Formler i $...$, egne formellinjer i $$...$$.
+   Animasjoner uten oppgaver i tre nivåer viser den gamle lista i tasks. */
+const OPPGAVER={};function OPPG(id,o){OPPGAVER[id]=o}
+const NIV=[['lett','Lett'],['middels','Middels'],['vanskelig','Vanskelig']];
+const OPPG_FIL={ma:'matematikk',fy:'fysikk',ki:'kjemi',bi:'biologi',na:'naturfag',ge:'geografi'},oppgLast={};
+function loadOppg(s){if(!OPPG_FIL[s])return Promise.resolve(false);return oppgLast[s]||(oppgLast[s]=new Promise(res=>{const sc=document.createElement('script');sc.src=`assets/js/oppgaver/${OPPG_FIL[s]}.js`;sc.onload=()=>res(true);sc.onerror=()=>{delete oppgLast[s];sc.remove();res(false)};document.head.append(sc)}))}
+function showTasks(m){const box=$('#mTasks'),bar=$('#mLvl');
+  if(OPPGAVER[m.id])return drawTasks(m);
+  bar.hidden=true;bar.innerHTML='';
+  const old=()=>{const id=m.id,done=store.get('rfr-tasks-v1',{})[id]||[];box.innerHTML=(m.tasks||[]).map((t,i)=>`<li class="${done[i]?'done':''}"><input type="checkbox" id="t-${i}"${done[i]?' checked':''}><div class="tq"><label for="t-${i}">${inl(t)}</label></div></li>`).join('');
+    box.querySelectorAll('input').forEach((inp,i)=>inp.onchange=()=>{const all=store.get('rfr-tasks-v1',{});const a=all[id]||[];a[i]=inp.checked;all[id]=a;store.set('rfr-tasks-v1',all);inp.closest('li').classList.toggle('done',inp.checked)})};
+  if(OPPG_FIL[m.s]&&!(m.tasks||[]).length)box.innerHTML='<li class="wait">Laster oppgaver …</li>';else old();
+  loadOppg(m.s).then(()=>{if(Stage.mod!==m)return;if(OPPGAVER[m.id])drawTasks(m);else old()})}
+function drawTasks(m,lv){const o=OPPGAVER[m.id],box=$('#mTasks'),bar=$('#mLvl'),levels=NIV.filter(([k])=>(o[k]||[]).length);if(!levels.length){box.innerHTML='';bar.hidden=true;return}
+  lv=lv||store.get('rfr-niva','lett');if(!levels.some(([k])=>k===lv))lv=levels[0][0];
+  const all=store.get('rfr-tasks-v2',{}),done=all[m.id]||{};const cnt=k=>(done[k]||[]).filter(Boolean).length;
+  bar.hidden=false;bar.innerHTML=levels.map(([k,n])=>`<button type="button" data-k="${k}" aria-pressed="${k===lv}">${n}<span class="cnt">${cnt(k)}/${o[k].length}</span></button>`).join('');
+  bar.querySelectorAll('button').forEach(b=>b.onclick=()=>{store.set('rfr-niva',b.dataset.k);drawTasks(m,b.dataset.k)});
+  const dl=done[lv]||[];
+  box.innerHTML=o[lv].map((t,i)=>{const tid=`t-${lv}-${i}`;return`<li class="${dl[i]?'done':''}"><input type="checkbox" id="${tid}"${dl[i]?' checked':''}><div class="tq"><label for="${tid}"><span class="tn">${i+1}</span>${inl(t.q)}</label>`+
+    `<div class="help">${t.hint?`<details><summary>Hint</summary><div class="hb">${blk(t.hint)}</div></details>`:''}${(t.losning||[]).length?`<details class="sol"><summary>Løsningsforslag</summary><div class="hb">${t.losning.map(para).join('')}</div></details>`:''}</div></div></li>`}).join('');
+  box.querySelectorAll('input').forEach((inp,i)=>inp.onchange=()=>{const all=store.get('rfr-tasks-v2',{});const d=all[m.id]||{};const a=d[lv]||[];a[i]=inp.checked;d[lv]=a;all[m.id]=d;store.set('rfr-tasks-v2',all);inp.closest('li').classList.toggle('done',inp.checked);
+    const c=bar.querySelector(`[data-k="${lv}"] .cnt`);if(c)c.textContent=`${a.filter(Boolean).length}/${o[lv].length}`})}
+
 /* ---- modulvisning ---- */
 let lastRO='',lastLive='',roT=0,hintT=0;
 function hideHint(){$('#hint').classList.add('gone')}
@@ -156,9 +187,7 @@ function openMod(id){
   $('#mTitle').textContent=m.title;$('#mLead').innerHTML=inl(m.lead||'');
   $('#mAbout').innerHTML=(m.about||[]).map(p=>`<p>${inl(p)}</p>`).join('');
   $('#mTex').innerHTML=(m.tex||[]).map(t=>`<div class="f">${texHTML(t,true)}</div>`).join('')||'<p class="empty">Ingen formler i denne animasjonen.</p>';
-  const done=store.get('rfr-tasks-v1',{})[id]||[];
-  $('#mTasks').innerHTML=(m.tasks||[]).map((t,i)=>`<li class="${done[i]?'done':''}"><input type="checkbox" id="t-${i}"${done[i]?' checked':''}><label for="t-${i}">${inl(t)}</label></li>`).join('');
-  $('#mTasks').querySelectorAll('input').forEach((inp,i)=>inp.onchange=()=>{const all=store.get('rfr-tasks-v1',{});const a=all[id]||[];a[i]=inp.checked;all[id]=a;store.set('rfr-tasks-v1',all);inp.parentElement.classList.toggle('done',inp.checked)});
+  showTasks(m);
   $('#mCode').textContent=shareURL(id);
   /* Forrige/neste går gjennom temaene i faget, i rekkefølge */
   const seq=temas(cs).flatMap(t=>t.ids.map(id=>[id,t]));let i=seq.findIndex(([id,t])=>id===m.id&&t===ct);

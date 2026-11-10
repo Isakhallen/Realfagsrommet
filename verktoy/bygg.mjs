@@ -24,10 +24,18 @@ const SUBJ = { ma: 'Matematikk', fy: 'Fysikk', ki: 'Kjemi', bi: 'Biologi', na: '
 const COURSE = { '1P': 'Matematikk 1P', '1T': 'Matematikk 1T', '2P': 'Matematikk 2P', R1: 'Matematikk R1', S1: 'Matematikk S1', R2: 'Matematikk R2', S2: 'Matematikk S2', UNI: 'Matematikk utenfor pensum (universitetsnivå)', FY1: 'Fysikk 1', FY2: 'Fysikk 2', KJ1: 'Kjemi 1', KJ2: 'Kjemi 2', BI1: 'Biologi 1', BI2: 'Biologi 2', NAT: 'Naturfag', GEO: 'Geografi' };
 const mods = vm.runInContext('MODS.map(m=>({id:m.id,s:m.s,c:m.c,title:m.title,lead:m.lead||"",tex:m.tex||[],about:m.about||[],tasks:m.tasks||[]}))', ctx);
 const PLAN = vm.runInContext('PLAN', ctx), TEMA = vm.runInContext('TEMA', ctx);
-// KaTeX lages ferdig her, så formlene står i HTML-en uten JavaScript
+// Oppgaver i tre nivåer (assets/js/oppgaver/<fag>.js), lastes i nettleseren først når de trengs
+vm.runInContext('var OPPGAVER={};function OPPG(id,o){OPPGAVER[id]=o}', ctx);
+const OPPG_DIR = 'assets/js/oppgaver';
+for (const f of fs.readdirSync(path.join(ROOT, OPPG_DIR)).filter(f => f.endsWith('.js')).sort()) vm.runInContext(rd(`${OPPG_DIR}/${f}`), ctx, { filename: `${OPPG_DIR}/${f}` });
+const OPPGAVER = vm.runInContext('OPPGAVER', ctx);
+const NIV = [['lett', 'Lett'], ['middels', 'Middels'], ['vanskelig', 'Vanskelig']];
+for (const id of Object.keys(OPPGAVER)) if (!mods.some(m => m.id === id)) console.warn(`Advarsel: oppgaver til ukjent animasjon ${id}`);
+// KaTeX lages ferdig her, så formlene står i HTML-en uten JavaScript. Fargemakroene (\cB osv.) hentes fra app.js.
 vm.runInContext(rd('assets/vendor/katex/katex.min.js'), ctx);
-const tex = (t, displayMode = false) => ctx.katex.renderToString(t, { displayMode, throwOnError: false, strict: 'ignore' });
-const withTex = html => html.replace(/\$([^$]+)\$/g, (_, t) => tex(t));
+const TEXMAC = vm.runInContext('(' + rd('assets/js/app.js').match(/const TEXMAC=(\{[^\n]*?\});/)[1] + ')', ctx);
+const tex = (t, displayMode = false) => ctx.katex.renderToString(t, { displayMode, throwOnError: false, strict: 'ignore', macros: { ...TEXMAC } });
+const withTex = html => html.replace(/\$\$([^$]+)\$\$/g, (_, t) => tex(t, true)).replace(/\$([^$]+)\$/g, (_, t) => tex(t));
 
 // 2) Gjør TeX og HTML i ingressen om til ren tekst for beskrivelser
 const SYM = { pi: 'π', lambda: 'λ', Delta: 'Δ', varphi: 'φ', phi: 'φ', sigma: 'σ', mu: 'μ', alpha: 'α', theta: 'θ', omega: 'ω', gamma: 'γ', cdot: '·', le: '≤', ge: '≥', neq: '≠', approx: '≈', to: '→', infty: '∞', times: '×', ell: 'ℓ', rightleftharpoons: '⇌', vec: '', left: '', right: '', quad: ' ', qquad: ' ' };
@@ -66,7 +74,19 @@ h1,h2,h3{font-family:"Newsreader",Georgia,serif;font-weight:500;line-height:1.2}
 .shot{display:block;border:1px solid var(--line);border-radius:6px;overflow:hidden}.shot img{display:block;width:100%;height:auto}
 .formler{background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:4px 16px;overflow-x:auto}
 ol.tasks li,ul.goals li{margin:.4em 0}ul.links{columns:2 16ch;padding-left:1.2em}
+ol.tasks.lv>li{margin:0 0 1.1em}ol.tasks.lv>li>p{margin:0 0 .3em}
+details{margin:.25em 0}summary{cursor:pointer;color:var(--fg-2);font-size:.92rem}details[open]>summary{color:var(--fg)}
+details>div{margin:.4em 0 .6em;padding:.5em 1em;background:var(--bg-2);border-left:2px solid var(--line);border-radius:0 6px 6px 0}details>div p{margin:.3em 0}
+details.sol>div{border-left-color:#83C167}
+details pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:.6em .8em;overflow-x:auto;font:.85rem/1.5 "JetBrains Mono",ui-monospace,monospace}
 footer{margin-top:48px;padding-top:16px;padding-bottom:32px;border-top:1px solid var(--line);font-size:.9rem;color:var(--fg-2)}`;
+// «Prøv dette» på delingssiden: tre nivåer med hint og løsningsforslag i <details>, ellers den gamle lista
+const taskHTML = m => {
+  const o = OPPGAVER[m.id];
+  if (!o) return m.tasks.length ? `<h2>Prøv dette</h2>\n<ol class="tasks">${m.tasks.map(t => `<li>${withTex(t)}</li>`).join('')}</ol>\n` : '';
+  const one = t => `<li><p>${withTex(t.q)}</p>${t.hint ? `<details><summary>Hint</summary><div><p>${withTex(t.hint)}</p></div></details>` : ''}${(t.losning || []).length ? `<details class="sol"><summary>Løsningsforslag</summary><div>${t.losning.map(p => /^<pre[\s>]/.test(p) ? p : `<p>${withTex(p)}</p>`).join('')}</div></details>` : ''}</li>`;
+  return `<h2>Prøv dette</h2>\n` + NIV.filter(([k]) => (o[k] || []).length).map(([k, n]) => `<h3>${n}</h3>\n<ol class="tasks lv">${o[k].map(one).join('')}</ol>\n`).join('');
+};
 const head = ({ title, desc, url, img, imgAlt, root, extra = '' }) => `<!doctype html>
 <html lang="nb">
 <head>
@@ -122,7 +142,7 @@ for (const m of mods) {
 <p class="lead">${withTex(m.lead)}</p>
 <a class="start" href="../../#${m.id}">Start animasjonen</a>
 <a class="shot" href="../../#${m.id}" tabindex="-1"><img src="../../${img}" alt="Skjermbilde av animasjonen ${esc(m.title)}" width="1200" height="630"></a>
-${m.tex.length ? `<h2>Formler</h2>\n<div class="formler">${m.tex.map(t => tex(t, true)).join('')}</div>\n` : ''}${m.about.length ? `<h2>Om animasjonen</h2>\n${m.about.map(p => `<p>${withTex(p)}</p>`).join('\n')}\n` : ''}${m.tasks.length ? `<h2>Prøv dette</h2>\n<ol class="tasks">${m.tasks.map(t => `<li>${withTex(t)}</li>`).join('')}</ol>\n` : ''}${goals.length ? `<h2>Kompetansemål</h2>\n<ul class="goals">${goals.map(g => `<li><b>${esc(g.kurs)}:</b> ${esc(g.mal)}</li>`).join('')}</ul>\n` : ''}${related.map(t => `<h2>Mer om ${esc(t.name.charAt(0).toLowerCase() + t.name.slice(1))}</h2>\n<ul class="links">${t.ids.map(id => `<li><a href="../${id}/">${esc(byId[id].title)}</a></li>`).join('')}</ul>\n`).join('')}<p><a class="start" href="../../#${m.id}">Start animasjonen</a></p>
+${m.tex.length ? `<h2>Formler</h2>\n<div class="formler">${m.tex.map(t => tex(t, true)).join('')}</div>\n` : ''}${m.about.length ? `<h2>Om animasjonen</h2>\n${m.about.map(p => `<p>${withTex(p)}</p>`).join('\n')}\n` : ''}${taskHTML(m)}${goals.length ? `<h2>Kompetansemål</h2>\n<ul class="goals">${goals.map(g => `<li><b>${esc(g.kurs)}:</b> ${esc(g.mal)}</li>`).join('')}</ul>\n` : ''}${related.map(t => `<h2>Mer om ${esc(t.name.charAt(0).toLowerCase() + t.name.slice(1))}</h2>\n<ul class="links">${t.ids.map(id => `<li><a href="../${id}/">${esc(byId[id].title)}</a></li>`).join('')}</ul>\n`).join('')}<p><a class="start" href="../../#${m.id}">Start animasjonen</a></p>
 </main>
 ` + foot('../../'));
 }

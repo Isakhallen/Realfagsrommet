@@ -40,7 +40,6 @@ lead:'Endre $a$, $b$ og $c$ og se hvordan parabelen flytter seg. Diskriminanten 
 controls:[{id:'a',label:'<i>a</i>',min:-3,max:3,step:.1,value:1},{id:'b',label:'<i>b</i>',min:-6,max:6,step:.1,value:-2},{id:'c',label:'<i>c</i>',min:-6,max:6,step:.1,value:-3},{id:'sym',type:'check',label:'Vis symmetrilinjen',value:true}],
 tex:['f(x)=\\cB{a}x^2+\\cY{b}x+\\cG{c}','x=\\frac{-b\\pm\\sqrt{\\cR{b^2-4ac}}}{2a}','f(x)=a\\,(x-p)^2+q,\\qquad p=-\\frac{b}{2a}'],
 about:['Tallet $a$ bestemmer om parabelen vender den hule siden opp ($a>0$) eller ned ($a<0$), og hvor smal den er.','Toppunktet eller bunnpunktet ligger på symmetrilinjen $x=-\\frac{b}{2a}$. Nullpunktene ligger like langt fra symmetrilinjen på hver side.','Diskriminanten $D=b^2-4ac$ står under rottegnet i abc-formelen. Er den negativ, har likningen $f(x)=0$ ingen reelle løsninger.','Konstantleddet $c$ er der grafen skjærer $y$-aksen (grønt punkt).'],
-tasks:['Juster $c$ til parabelen akkurat så vidt berører $x$-aksen. Hva er $D$ da?','Hold $a$ og $c$ fast og endre bare $b$. Hvilken kurve følger toppunktet? (Tips: den er også en parabel.)','Lag en parabel med nullpunkter i $x=-1$ og $x=3$.','Hva skjer når $a$ nærmer seg 0?'],
 draw(S){const v=S.v,a=v.a,b=v.b,c=v.c,f=x=>a*x*x+b*x+c;const P=Plane(-7,7,-8,8,pad(S,28),true);P.grid(1);P.axes({xs:2,ys:2,xl:'x',yl:'y'});
  const p=S.p,D=p.b*p.b-4*p.a*p.c,Dv=b*b-4*a*c;
  if(Math.abs(a)>.02){const xs=-b/(2*a),ys=f(xs);if(p.sym)ln(P.X(xs),P.t,P.X(xs),P.t+P.h,A(C.yellow,.45),1.4,[6,6]);P.fn(f,C.blue,3.2);
