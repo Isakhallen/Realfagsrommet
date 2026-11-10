@@ -72,20 +72,40 @@ function bars(b,items,o={}){const n=items.length;if(!n)return;const g=o.g??12,bw
 /* ---- koordinatsystem ---- */
 const decOf=s=>{const t=String(+s.toFixed(6));return t.includes('.')?t.split('.')[1].length:0};
 function piLab(x){const k=Math.round(x/(PI/2));if(k===0)return '0';const sg=k<0?'−':'';const a=Math.abs(k);if(a%2===0){const n=a/2;return sg+(n===1?'':n)+'π'}return sg+(a===1?'':a)+'π/2'}
+/* ---- zoom: brukeren kan endre aksene i grafene ----
+   Grafene telles i den rekkefølgen draw lager dem (nr. 0, 1, 2 …). ZV.v[nr] overstyrer utsnittet:
+   {m:'rel',u0,u1,v0,v1} er brøkdeler av standardutsnittet (følger med når grafen ruller eller skalerer seg selv),
+   {m:'abs',x0,x1,y0,y1} er faste verdier skrevet inn av brukeren. b og box er standardutsnittet og rammen da det ble satt.
+   Planes som lages utenfor draw (f.eks. i pick), finnes igjen på rammen. Styres fra app.js. */
+const ZV={on:false,ext:false,i:0,cur:[],list:[],v:{},chk:false};
+const nice125=r=>{const e=Math.pow(10,Math.floor(Math.log10(Math.max(Math.abs(r),1e-12))));const m=Math.abs(r)/e;return(m<1.5?1:m<3.5?2:m<7.5?5:10)*e};
+/* Avstand mellom merkene når grafen er zoomet: z er nytt utsnitt delt på standard */
+function zStep(st,z,pi){if(!st||!(z>0)||z>.7&&z<1.45)return st;if(pi&&z>1)return st*Math.max(1,Math.round(nice125(z)));return nice125(st*z)}
+/* Egne tallformater (f.eks. y=>nf(y,0)) brukes videre bare hvis de fortsatt gir ulike tall ved hvert merke */
+function zFmt(f,st,st0,a,b){if(!f||st===st0||st>st0)return f;let prev=null;for(let x=Math.ceil(a/st-1e-9)*st,n=0;x<=b+1e-9&&n<60;x+=st,n++){const s=String(f(x));if(s&&s===prev)return null;prev=s}return f}
+/* Egne tallformater er laget for standardutsnittet. Utenfor det kan de feile (f.eks. månedsnavn før januar): da blir merket tomt. */
+const zSafe=f=>f&&(x=>{try{const r=f(x);return r==null?'':String(r)}catch(e){return ''}});
+const zDiff=(a,b)=>a.some((v,i)=>Math.abs(v-b[i])>1e-6*(Math.abs(v)+Math.abs(b[i])+1e-9));
 function Plane(x0,x1,y0,y1,b,eq){let{l,t,w,h}=b;if(eq){const s=Math.min(w/(x1-x0),h/(y1-y0)),cx=(x0+x1)/2,cy=(y0+y1)/2;x0=cx-w/s/2;x1=cx+w/s/2;y0=cy-h/s/2;y1=cy+h/s/2}
-  const P={x0,x1,y0,y1,l,t,w,h,sx:w/(x1-x0),sy:h/(y1-y0)};
+  const base=[x0,x1,y0,y1],box=[l,t,w,h];let zi=-1,o=null;
+  if(ZV.on){zi=ZV.i++;o=ZV.v[zi]||null;if(o&&ZV.chk&&(zDiff(o.b,base)||zDiff(o.box,box))){delete ZV.v[zi];o=null}}
+  else if(ZV.ext){const q=ZV.list.find(q=>q.l===l&&q.t===t&&q.w===w&&q.h===h);if(q){zi=q.zi;o=ZV.v[zi]||null}}
+  if(o){const bw=x1-x0,bh=y1-y0;if(o.m==='abs'){x0=o.x0;x1=o.x1;y0=o.y0;y1=o.y1}else{x0=base[0]+o.u0*bw;x1=base[0]+o.u1*bw;y0=base[2]+o.v0*bh;y1=base[2]+o.v1*bh}}
+  const P={x0,x1,y0,y1,l,t,w,h,sx:w/(x1-x0),sy:h/(y1-y0),zi,base,box,zoomed:!!o,zx:(x1-x0)/(base[1]-base[0]),zy:(y1-y0)/(base[3]-base[2])};
+  if(ZV.on)ZV.cur.push(P);
   P.X=x=>l+(x-x0)*P.sx;P.Y=y=>t+(y1-y)*P.sy;P.ix=px=>x0+(px-l)/P.sx;P.iy=py=>y1-(py-t)/P.sy;P.pt=(x,y)=>[P.X(x),P.Y(y)];
   P.in=(px,py,m=0)=>px>=l-m&&px<=l+w+m&&py>=t-m&&py<=t+h+m;
   P.clip=fn=>{X.save();X.beginPath();X.rect(l,t,w,h);X.clip();try{fn()}finally{X.restore()}};
-  P.grid=(st=1,o={})=>{const k=INTRO;const cx=clamp(P.X(o.cx??0),l,l+w),cy=clamp(P.Y(o.cy??0),t,t+h);const sy=o.sy||st;X.lineWidth=1;
+  P.grid=(st=1,o={})=>{const k=INTRO;const cx=clamp(P.X(o.cx??0),l,l+w),cy=clamp(P.Y(o.cy??0),t,t+h);const sy=zStep(o.sy||st,P.zy);st=zStep(st,P.zx);X.lineWidth=1;
     const L=(sx_,sy_,al)=>{X.strokeStyle=A(C.blue,al);X.beginPath();if((x1-x0)/sx_<400)for(let x=Math.ceil(x0/sx_-1e-9)*sx_;x<=x1+1e-9;x+=sx_){const px=P.X(x);X.moveTo(px,cy-(cy-t)*k);X.lineTo(px,cy+(t+h-cy)*k)}if((y1-y0)/sy_<400)for(let y=Math.ceil(y0/sy_-1e-9)*sy_;y<=y1+1e-9;y+=sy_){const py=P.Y(y);X.moveTo(cx-(cx-l)*k,py);X.lineTo(cx+(l+w-cx)*k,py)}X.stroke()};
     if(o.minor!==false)L(st/2,sy/2,.065);L(st,sy,o.alpha||.2)};
-  P.axes=(o={})=>{const k=INTRO;const ax=o.xAt??0,ay=o.yAt??0;const py=clamp(P.Y(ay),t,t+h),px=clamp(P.X(ax),l,l+w);const col=A(C.fg,.85);
+  P.axes=(o={})=>{/* bare akser med tall regnes som en graf brukeren kan zoome i */if(o.xs&&o.x!==false||o.ys&&o.y!==false){P.ax=true;P.xl=o.xl;P.yl=o.yl}if(P.zoomed){const xs=zStep(o.xs,P.zx,o.xpi),ys=zStep(o.ys,P.zy),q=Object.assign({},o,{xs,ys,xf:zSafe(o.xf),yf:zSafe(o.yf)});o=Object.assign({},o,{xf:q.xf,yf:q.yf});if(xs!==o.xs){q.xpi=o.xpi&&Math.abs(xs/(PI/2)-Math.round(xs/(PI/2)))<1e-9;q.xf=zFmt(o.xf,xs,o.xs,x0,x1);if(!q.xf)q.xd=undefined}if(ys!==o.ys){q.yf=zFmt(o.yf,ys,o.ys,y0,y1);if(!q.yf)q.yd=undefined}o=q}
+    const k=INTRO;const ax=o.xAt??0,ay=o.yAt??0;const py=clamp(P.Y(ay),t,t+h),px=clamp(P.X(ax),l,l+w);const col=A(C.fg,.85);
     if(o.x!==false)ln(px-(px-l)*k,py,px+(l+w-px)*k,py,col,1.6);
     if(o.y!==false)ln(px,py+(t+h-py)*k,px,py-(py-t)*k,col,1.6);
     X.globalAlpha=k;
-    if(o.xs&&o.x!==false){const d=o.xd??decOf(o.xs);for(let x=Math.ceil(x0/o.xs-1e-9)*o.xs;x<=x1+1e-9;x+=o.xs){if(Math.abs(x-ax)<o.xs*1e-6&&o.y!==false&&!o.x0)continue;const q=P.X(x);if(q<l+3||q>l+w-3)continue;ln(q,py-4,q,py+4,col,1.4);T(o.xpi?piLab(x):(o.xf?o.xf(x):nf(x,d)),q,py+(o.xdown===false?-14:15),{f:'n',s:11.5,c:C.fg2,a:'center'})}}
-    if(o.ys&&o.y!==false){const d=o.yd??decOf(o.ys);for(let y=Math.ceil(y0/o.ys-1e-9)*o.ys;y<=y1+1e-9;y+=o.ys){if(Math.abs(y-ay)<o.ys*1e-6&&o.x!==false&&!o.y0)continue;const q=P.Y(y);if(q<t+3||q>t+h-3)continue;ln(px-4,q,px+4,q,col,1.4);T(o.yf?o.yf(y):nf(y,d),px-8,q,{f:'n',s:11.5,c:C.fg2,a:'right'})}}
+    if(o.xs&&o.x!==false&&(x1-x0)/o.xs<400){const d=o.xd??decOf(o.xs);for(let x=Math.ceil(x0/o.xs-1e-9)*o.xs;x<=x1+1e-9;x+=o.xs){if(Math.abs(x-ax)<o.xs*1e-6&&o.y!==false&&!o.x0)continue;const q=P.X(x);if(q<l+3||q>l+w-3)continue;ln(q,py-4,q,py+4,col,1.4);T(o.xpi?piLab(x):(o.xf?o.xf(x):nf(x,d)),q,py+(o.xdown===false?-14:15),{f:'n',s:11.5,c:C.fg2,a:'center'})}}
+    if(o.ys&&o.y!==false&&(y1-y0)/o.ys<400){const d=o.yd??decOf(o.ys);for(let y=Math.ceil(y0/o.ys-1e-9)*o.ys;y<=y1+1e-9;y+=o.ys){if(Math.abs(y-ay)<o.ys*1e-6&&o.x!==false&&!o.y0)continue;const q=P.Y(y);if(q<t+3||q>t+h-3)continue;ln(px-4,q,px+4,q,col,1.4);T(o.yf?o.yf(y):nf(y,d),px-8,q,{f:'n',s:11.5,c:C.fg2,a:'right'})}}
     if(o.xl)Tm(o.xl,l+w-2,py-15,{a:'right',c:C.fg2,s:o.ls||18});
     if(o.yl)Tm(o.yl,px+9,t+11,{c:C.fg2,s:o.ls||18});
     X.globalAlpha=1};
@@ -146,5 +166,5 @@ const MODS=[], MOD={};
 function M(d){d.controls=d.controls||[];MODS.push(d);MOD[d.id]=d}
 const Stage={cv:null,ctx:null,W:800,H:500,dpr:1,mod:null,S:null,play:true,last:0,drag:null,err:null};
 function newState(mod,W,H,keep){const S={p:{},v:{},t:0,W,H,intro:0,touched:false,mod};for(const c of mod.controls)if(c.id!=null){S.p[c.id]=keep&&c.id in keep.p?keep.p[c.id]:c.value;S.v[c.id]=S.p[c.id]}if(mod.init)mod.init(S);return S}
-function render(ctx,S,mod,W,H,dpr){X=ctx;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=1;ctx.fillStyle=C.stage;ctx.fillRect(0,0,W,H);S.W=W;S.H=H;if(W<80||H<60)return;ctx.save();try{mod.draw(S)}catch(e){ctx.restore();ctx.save();if(!Stage.err){Stage.err=e;console.error(mod.id,e)}T('Noe gikk galt i denne animasjonen.',W/2,H/2,{a:'center',c:C.red})}ctx.restore()}
+function render(ctx,S,mod,W,H,dpr){X=ctx;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=1;ctx.fillStyle=C.stage;ctx.fillRect(0,0,W,H);S.W=W;S.H=H;if(W<80||H<60)return;const live=S===Stage.S;if(live){ZV.on=true;ZV.i=0;ZV.cur=[]}ctx.save();try{mod.draw(S)}catch(e){ctx.restore();ctx.save();if(!Stage.err){Stage.err=e;console.error(mod.id,e)}T('Noe gikk galt i denne animasjonen.',W/2,H/2,{a:'center',c:C.red})}finally{if(live){ZV.on=false;ZV.list=ZV.cur;ZV.chk=false}}ctx.restore()}
 function setP(id,v,S=Stage.S){if(!S)return;S.p[id]=v;if(S===Stage.S&&typeof syncCtl==='function')syncCtl(id)}

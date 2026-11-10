@@ -122,11 +122,11 @@ function buildControls(){
     else if(c.type==='btns'){el.className='ctl btns';c.items.forEach(([n,f])=>{const b=document.createElement('button');b.type='button';b.innerHTML=n;b.onclick=()=>{Stage.S.touched=true;hideHint();f(Stage.S);refreshShow()};el.append(b)})}
     else if(c.type==='data'){/* egne tall eller tallpar, f.eks. datasett */el.className='ctl data';el.innerHTML=`<label for="${cid}">${c.label}</label><textarea id="${cid}" rows="${c.rows||2}" spellcheck="false" placeholder="${esc(c.ph||'')}"></textarea><button type="button" class="apply">${c.btn||'Bruk tallene'}</button>${c.help?`<small class="chelp">${c.help}</small>`:''}`;
       const ta=el.querySelector('textarea');ta.value=el._last=c.get(S);
-      const apply=()=>{let err;try{err=c.set(Stage.S,ta.value)}catch(e){err=e.message}msgCtl(el,err||'');if(!err){Stage.S.touched=true;hideHint();ta.value=el._last=c.get(Stage.S);refreshShow()}};
+      const apply=()=>{let err;try{err=c.set(Stage.S,ta.value)}catch(e){err=e.message}msgCtl(el,err||'');if(!err){ZV.chk=true;Stage.S.touched=true;hideHint();ta.value=el._last=c.get(Stage.S);refreshShow()}};
       el.querySelector('button').onclick=apply;ta.onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();apply()}}}
     else if(c.type==='func'){/* egen funksjon f(x) */el.className='ctl func';el.innerHTML=`<label for="${cid}">${c.label}</label><div class="fxrow"><span>${c.pre||'f(x) ='}</span><input id="${cid}" type="text" spellcheck="false" autocomplete="off" autocapitalize="off"><button type="button" class="apply">Tegn</button></div>${c.help?`<small class="chelp">${c.help}</small>`:''}`;
       const inp=el.querySelector('input');inp.value=c.get(S);
-      const apply=()=>{let err;try{err=c.set(Stage.S,parseFx(inp.value),inp.value)}catch(e){err=e.message}msgCtl(el,err||'');if(!err){Stage.S.touched=true;hideHint()}};
+      const apply=()=>{let err;try{err=c.set(Stage.S,parseFx(inp.value),inp.value)}catch(e){err=e.message}msgCtl(el,err||'');if(!err){ZV.chk=true;Stage.S.touched=true;hideHint()}};
       el.querySelector('button').onclick=apply;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();apply()}}}
     else{el.className='ctl';el.innerHTML=`<label for="${cid}">${c.label}</label><input class="num" type="text" inputmode="decimal" spellcheck="false" autocomplete="off" aria-label="Skriv inn verdi: ${esc(c.label.replace(/<[^>]+>/g,''))}" title="Klikk og skriv inn en verdi" value="${esc(fmtCtl(c,S.p[c.id]))}"><input type="range" id="${cid}" min="${c.log?0:c.min}" max="${c.log?1000:c.max}" step="${c.log?1:c.step||1}" value="${toSl(c,S.p[c.id])}">`;
       const inp=el.querySelector('input[type=range]'),num=el.querySelector('.num');fillPct(c,inp);inp.oninput=()=>{fillPct(c,inp);changeP(c,fromSl(c,inp.value))};
@@ -137,7 +137,7 @@ function buildControls(){
     el._c=c;box.append(el);if(c.id)ctlEls[c.id]=el});
   refreshShow();
 }
-function changeP(c,v){const S=Stage.S;S.p[c.id]=v;S.touched=true;hideHint();const el=ctlEls[c.id];if(el){if(c.type==='seg')el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)));else if(!c.type){const n=el.querySelector('.num');if(document.activeElement!==n)n.value=fmtCtl(c,v)}}if(c.snap)S.v[c.id]=v;if(Stage.mod.change)Stage.mod.change(S,c.id);refreshShow()}
+function changeP(c,v){const S=Stage.S;S.p[c.id]=v;if(c.type)ZV.chk=true;S.touched=true;hideHint();const el=ctlEls[c.id];if(el){if(c.type==='seg')el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)));else if(!c.type){const n=el.querySelector('.num');if(document.activeElement!==n)n.value=fmtCtl(c,v)}}if(c.snap)S.v[c.id]=v;if(Stage.mod.change)Stage.mod.change(S,c.id);refreshShow()}
 function syncCtl(id){const el=ctlEls[id];if(!el)return;const c=el._c,v=Stage.S.p[id];if(c.type==='seg')el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)));else if(c.type==='sel')el.querySelector('select').value=v;else if(c.type==='check')el.querySelector('input').checked=!!v;else if(!c.type){const inp=el.querySelector('input[type=range]');inp.value=toSl(c,v);fillPct(c,inp);const n=el.querySelector('.num');if(document.activeElement!==n)n.value=fmtCtl(c,v)}refreshShow()}
 function refreshShow(){for(const el of $('#ctrls').children){const c=el._c;if(c&&c.show)el.hidden=!c.show(Stage.S)}}
 
@@ -146,7 +146,7 @@ let lastRO='',lastLive='',roT=0,hintT=0;
 function hideHint(){$('#hint').classList.add('gone')}
 function setPlayIcon(){$('#bPlay').innerHTML=Stage.play?'<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2" width="3.2" height="10" rx="1" fill="currentColor"/><rect x="8.3" y="2" width="3.2" height="10" rx="1" fill="currentColor"/></svg>':'<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 2l8.5 5-8.5 5z" fill="currentColor"/></svg>';$('#bPlay').setAttribute('aria-label',Stage.play?'Pause (mellomrom)':'Spill av (mellomrom)')}
 function openMod(id){
-  const m=MOD[id];show('mod');Stage.mod=m;Stage.err=null;Stage.drag=null;Stage.play=!m.paused;setPlayIcon();
+  const m=MOD[id];show('mod');Stage.mod=m;zReset();ZV.ext=true;Stage.err=null;Stage.drag=null;Stage.play=!m.paused;setPlayIcon();
   Stage.S=newState(m,Stage.W,Stage.H);if(REDUCED)Stage.S.intro=1;
   /* Fag og tema animasjonen ble åpnet fra, ellers filteret som er valgt, ellers animasjonens eget fag */
   let cs=ctx.s&&inSubj(m,ctx.s)?ctx.s:viewS()&&inSubj(m,viewS())?viewS():m.s;
@@ -175,10 +175,79 @@ function openMod(id){
   const cv_=Stage.cv;cv_.setAttribute('role','img');cv_.setAttribute('aria-label','Animasjon: '+m.title);
   store.set('rfr-last',id);
 }
-function resetMod(keepParams=true){const m=Stage.mod;if(!m)return;const old=Stage.S;Stage.S=newState(m,Stage.W,Stage.H,keepParams?old:null);Stage.S.intro=1;Stage.S.touched=old.touched;Stage.err=null;if(!keepParams)buildControls()}
-function show(v){$('#vHome').hidden=v!=='home';$('#vMod').hidden=v!=='mod';$('#vPlan').hidden=v!=='plan';if(v!=='mod'){Stage.mod=null;document.title=v==='plan'?'Læreplankart · Realfagsrommet':HOME_TITLE;document.querySelectorAll('.mi[aria-current]').forEach(a=>a.removeAttribute('aria-current'));if(document.body.classList.contains('board'))toggleBoard(false)}document.body.classList.remove('nav-open');$('#navBtn').setAttribute('aria-expanded','false');window.scrollTo(0,0)}
+function resetMod(keepParams=true){const m=Stage.mod;if(!m)return;const old=Stage.S;Stage.S=newState(m,Stage.W,Stage.H,keepParams?old:null);Stage.S.intro=1;Stage.S.touched=old.touched;Stage.err=null;if(!keepParams){zReset();buildControls()}}
+function show(v){$('#vHome').hidden=v!=='home';$('#vMod').hidden=v!=='mod';$('#vPlan').hidden=v!=='plan';if(v!=='mod'){Stage.mod=null;ZV.ext=false;zReset();document.title=v==='plan'?'Læreplankart · Realfagsrommet':HOME_TITLE;document.querySelectorAll('.mi[aria-current]').forEach(a=>a.removeAttribute('aria-current'));if(document.body.classList.contains('board'))toggleBoard(false)}document.body.classList.remove('nav-open');$('#navBtn').setAttribute('aria-expanded','false');window.scrollTo(0,0)}
 function route(){const h=decodeURIComponent(location.hash.slice(1));if(MOD[h])openMod(h);else if(h==='laereplan'){show('plan')}
   else{const f=h.match(/^fag\/(\w+)(?:\/([\w-]+))?$/);show('home');if(f&&SUBJ[f[1]]){setF({s:f[1],c:null,tr:null,t:f[2]||null});toGallery()}}}
+
+/* ---- zoom og akser i grafene (utsnittene ligger i ZV i core.js) ----
+   Hver graf med akser får knapper oppe til høyre: zoom ut, zoom inn, standardutsnitt og «skriv inn aksene».
+   Ctrl + rulling (eller knip på styreflaten) zoomer der musa er, og man kan dra i grafen for å flytte utsnittet. */
+const zOK=P=>P.ax&&P.zi>=0&&P.w>=110&&P.h>=60;
+const zPlanes=()=>Stage.mod?ZV.list.filter(zOK):[];
+const zAt=(x,y)=>zPlanes().find(P=>P.in(x,y));
+const zFind=zi=>ZV.list.find(P=>P.zi===zi);
+const zAbs=P=>!!(ZV.v[P.zi]&&ZV.v[P.zi].m==='abs');
+const fz=v=>String(+(+v).toPrecision(4)).replace('.',',');
+const ZI={out:'<path d="M3.5 8h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',in:'<path d="M3.5 8h9M8 3.5v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  home:'<path d="M2.8 7.6 8 3l5.2 4.6M4.5 6.4V13h7V6.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  ax:'<path d="M3 2.5V13h10.5M6 13v-1.6M9 13v-1.6M12 13v-1.6M3 10h1.6M3 7h1.6M3 4h1.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'};
+let zKey='',zOpen=-1,zTipT=0,zTipped=false,zNeed=false;
+/* Nytt utsnitt for graf P. abs: faste tall (skrevet inn), ellers brøkdeler av standardutsnittet. Gir feilmelding som tekst. */
+function zSet(P,x0,x1,y0,y1,abs){const[bx0,bx1,by0,by1]=P.base,bw=bx1-bx0,bh=by1-by0;
+  if(![x0,x1,y0,y1].every(isFinite))return 'Skriv inn tall i alle fire feltene.';
+  if(!(x1>x0)||!(y1>y0))return 'Fra-verdien må være mindre enn til-verdien.';
+  const zx=(x1-x0)/bw,zy=(y1-y0)/bh;if(!(zx>=1e-4&&zx<=1e4&&zy>=1e-4&&zy<=1e4))return 'Så langt går det ikke an å zoome i denne grafen.';
+  const same=Math.max(Math.abs(x0-bx0),Math.abs(x1-bx1))/bw<1e-6&&Math.max(Math.abs(y0-by0),Math.abs(y1-by1))/bh<1e-6;
+  if(same)delete ZV.v[P.zi];
+  else ZV.v[P.zi]=abs?{m:'abs',x0,x1,y0,y1,b:P.base,box:P.box}:{m:'rel',u0:(x0-bx0)/bw,u1:(x1-bx0)/bw,v0:(y0-by0)/bh,v1:(y1-by0)/bh,b:P.base,box:P.box};
+  if(Stage.S)Stage.S.touched=true;hideHint();return null}
+/* Zoom om punktet (ax, ay). Uten punkt: om origo hvis det er med i grafen, ellers om midten. */
+function zZoom(P,f,ax,ay){if(ax===undefined){ax=P.x0<=0&&P.x1>=0?0:(P.x0+P.x1)/2;ay=P.y0<=0&&P.y1>=0?0:(P.y0+P.y1)/2}
+  zSet(P,ax-(ax-P.x0)*f,ax+(P.x1-ax)*f,ay-(ay-P.y0)*f,ay+(P.y1-ay)*f,zAbs(P));zNeed=true}
+function zHome(zi){delete ZV.v[zi];zNeed=true}
+function zTip(t){const el=$('#ztip');if(!el)return;el.textContent=t;el.hidden=false;clearTimeout(zTipT);zTipT=setTimeout(()=>{el.hidden=true},1800)}
+/* Knappene følger grafene. Bygges på nytt bare når grafene endrer seg, ellers flyttes de. */
+function zUI(){const box=$('#zbars');if(!box)return;const ps=zPlanes();const key=ps.map(P=>P.zi).join(',');
+  if(key!==zKey){zKey=key;const many=ps.length>1;
+    box.innerHTML=ps.map((P,k)=>{const n=many?` ${k+1}`:'';const b=(a,t)=>`<button type="button" class="zb" data-z="${a}" title="${t}" aria-label="${t}"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">${ZI[a]}</svg></button>`;
+      return`<div class="zbar" data-zi="${P.zi}" role="group" aria-label="Akser for graf${n}">${b('out','Zoom ut'+(many?' i graf'+n:''))}${b('in','Zoom inn'+(many?' i graf'+n:''))}${b('home','Vis standardutsnittet')}${b('ax','Endre aksene'+(many?' i graf'+n:''))}</div>`}).join('');
+    if(zOpen>=0&&!ps.some(P=>P.zi===zOpen))zClose()}
+  for(const el of box.children){const P=zFind(+el.dataset.zi);if(!P)continue;const pos=`${Math.round(P.l+P.w)}px,${Math.round(P.t)}px`;if(el._p!==pos){el._p=pos;el.style.left=Math.round(P.l+P.w)+'px';el.style.top=Math.round(P.t)+'px'}
+    const h=el.querySelector('[data-z=home]');if(h.hidden===P.zoomed)h.hidden=!P.zoomed}
+  if(zNeed){zNeed=false;zFill()}}
+function zFill(v){if(zOpen<0)return;const P=zFind(zOpen);if(!P)return;v=v||[P.x0,P.x1,P.y0,P.y1];
+  ['zx0','zx1','zy0','zy1'].forEach((id,i)=>{const inp=$('#'+id);if(document.activeElement!==inp)inp.value=fz(v[i])})}
+function zShow(zi){const P=zFind(zi),pop=$('#zpop');if(!P)return;zOpen=zi;const ps=zPlanes();
+  const nm=(s,d)=>s&&String(s).length<=16?s:d;$('#zpX').textContent=nm(P.xl,'x');$('#zpY').textContent=nm(P.yl,'y');
+  $('#zpT').textContent='Akser'+(ps.length>1?' i graf '+(ps.indexOf(P)+1):'');$('#zpMsg').hidden=true;
+  ['zx0','zx1','zy0','zy1'].forEach(id=>{$('#'+id).value=''});pop.hidden=false;zFill();
+  const st=$('#stage').getBoundingClientRect(),w=pop.offsetWidth,h=pop.offsetHeight;
+  pop.style.left=clamp(P.l+P.w-w-4,8,Math.max(8,st.width-w-8))+'px';pop.style.top=clamp(P.t+38,8,Math.max(8,st.height-h-8))+'px';
+  $('#zx0').focus();$('#zx0').select()}
+function zClose(){const pop=$('#zpop');if(pop&&!pop.hidden){const f=pop.contains(document.activeElement);pop.hidden=true;if(f){const b=document.querySelector(`.zbar[data-zi="${zOpen}"] [data-z=ax]`);if(b)b.focus()}}zOpen=-1}
+function zApply(){const P=zFind(zOpen);if(!P)return;const v=['zx0','zx1','zy0','zy1'].map(id=>parseNum($('#'+id).value));
+  const err=v.some(x=>!isFinite(x))?'Skriv inn tall, for eksempel −2, 0,5 eller 2π.':zSet(P,...v,true);const m=$('#zpMsg');m.textContent=err||'';m.hidden=!err}
+function zReset(){ZV.v={};ZV.list=[];zKey='';zClose()}
+function zBoot(){const st=$('#stage');
+  st.insertAdjacentHTML('beforeend',`<div class="zbars" id="zbars"></div><div class="ztip" id="ztip" role="status" hidden></div>
+<div class="zpop" id="zpop" role="dialog" aria-labelledby="zpT" hidden><div class="zph"><b id="zpT">Akser</b><button type="button" class="zclose" id="zpClose" aria-label="Lukk">×</button></div>
+<div class="zpr"><label for="zx0" id="zpX">x</label><input id="zx0" inputmode="decimal" autocomplete="off" spellcheck="false"><span>til</span><input id="zx1" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Største verdi på den vannrette aksen"></div>
+<div class="zpr"><label for="zy0" id="zpY">y</label><input id="zy0" inputmode="decimal" autocomplete="off" spellcheck="false"><span>til</span><input id="zy1" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Største verdi på den loddrette aksen"></div>
+<small class="cmsg" id="zpMsg" role="status" hidden></small>
+<div class="zpb"><button type="button" class="apply" id="zpApply">Bruk</button><button type="button" class="apply" id="zpHome">Standard</button></div>
+<small class="chelp zhelp">Med mus: hold Ctrl og rull for å zoome, og dra i grafen for å flytte den.</small></div>`);
+  $('#zbars').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(!b)return;const zi=+b.closest('.zbar').dataset.zi,P=zFind(zi);if(!P)return;const a=b.dataset.z;
+    if(a==='in')zZoom(P,1/1.5);else if(a==='out')zZoom(P,1.5);else if(a==='home')zHome(zi);else if(a==='ax'){if(zOpen===zi)zClose();else zShow(zi)}});
+  $('#zpApply').onclick=zApply;$('#zpHome').onclick=()=>{zHome(zOpen);$('#zpMsg').hidden=true};$('#zpClose').onclick=zClose;
+  $('#zpop').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();zApply()}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();zClose()}});
+  document.addEventListener('pointerdown',e=>{if(zOpen>=0&&!e.target.closest('#zpop')&&!e.target.closest('.zbar'))zClose()});
+  Stage.cv.addEventListener('wheel',e=>{if(!Stage.mod)return;const[x,y]=pos(e),P=zAt(x,y);if(!P)return;
+    if(!e.ctrlKey&&!e.metaKey){if(!zTipped){zTipped=true;zTip('Hold Ctrl og rull for å zoome i grafen')}return}
+    e.preventDefault();const d=e.deltaY*(e.deltaMode===1?33:e.deltaMode===2?400:1);zZoom(P,Math.exp(clamp(d,-120,120)*.0025),P.ix(x),P.iy(y))},{passive:false})}
+/* Dra i en graf (der det ikke er noe annet å dra i) for å flytte utsnittet */
+function zPan(P,x,y){const kx=(P.x1-P.x0)/P.w,ky=(P.y1-P.y0)/P.h,v=[P.x0,P.x1,P.y0,P.y1],abs=zAbs(P);
+  return{pan:true,move(nx,ny){const dx=(nx-x)*kx,dy=(ny-y)*ky;if(dx||dy){zSet(P,v[0]-dx,v[1]-dx,v[2]+dy,v[3]+dy,abs);zNeed=true}}}}
 
 /* ---- tavlemodus ---- */
 function toggleBoard(on){const b=document.body;on=on??!b.classList.contains('board');b.classList.toggle('board',on);try{if(on&&document.documentElement.requestFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});if(!on&&document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}}
@@ -240,7 +309,7 @@ function tick(ts){requestAnimationFrame(tick);let dt=(ts-(Stage.last||ts))/1000;
   if(m&&S){for(const k in S.p){const v=S.p[k];S.v[k]=typeof v==='number'&&typeof S.v[k]==='number'?smooth(S.v[k],v,dt,10):v}
     S.intro=Math.min(1,S.intro+dt/1.1);INTRO=REDUCED?1:ease(S.intro);
     if(Stage.play&&m.update){S.t+=dt;try{m.update(S,dt)}catch(e){if(!Stage.err){Stage.err=e;console.error(m.id,e)}}}else if(Stage.play)S.t+=dt;
-    render(Stage.ctx,S,m,Stage.W,Stage.H,Stage.dpr);INTRO=1;
+    render(Stage.ctx,S,m,Stage.W,Stage.H,Stage.dpr);INTRO=1;zUI();
     if(ts-roT>110){roT=ts;try{const r=m.readout?m.readout(S):[];const html=r.map(([k,v,c])=>`<div class="ro"><span class="k"${c?` style="color:${C[c]||c}"`:''}>${k}</span><span>${v}</span></div>`).join('');if(html!==lastRO){$('#rd').innerHTML=html;lastRO=html}for(const el of $('#ctrls').children){const c=el._c;if(c&&c.type==='data'){const g=c.get(S),ta=el.querySelector('textarea');if(g!==el._last&&document.activeElement!==ta){ta.value=el._last=g}}}const lv=m.live?m.live(S):'';if(lv!==lastLive){$('#live').innerHTML=lv?texHTML(lv,true):'';lastLive=lv}}catch(e){}}
   }
   if(!$('#vHome').hidden){drawHero(dt);for(let i=0;i<2&&thumbQ.length;i++)renderThumb(thumbQ.shift())}
@@ -278,9 +347,9 @@ function boot(){
   $('#bCopy').onclick=e=>{const t=Stage.mod?shareURL(Stage.mod.id):'';const b=e.currentTarget;const lab=b.dataset.label||'Kopier koden';const ok=()=>{b.textContent='Kopiert';setTimeout(()=>b.textContent=lab,1600)};try{navigator.clipboard.writeText(t).then(ok,()=>{selectCode()})}catch(err){selectCode()}};
   function selectCode(){const r=document.createRange();r.selectNodeContents($('#mCode'));const s=getSelection();s.removeAllRanges();s.addRange(r)}
   document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.classList.contains('board'))document.body.classList.remove('board')});
-  const cv=Stage.cv;
-  cv.addEventListener('pointerdown',e=>{const m=Stage.mod,S=Stage.S;if(!m)return;const[x,y]=pos(e);S.touched=true;hideHint();const d=m.pick?m.pick(S,x,y):null;if(d){Stage.drag=d;try{cv.setPointerCapture(e.pointerId)}catch(_){}cv.style.cursor='grabbing';if(d.move)d.move(x,y);e.preventDefault()}else if(m.click){m.click(S,x,y)}});
-  cv.addEventListener('pointermove',e=>{const m=Stage.mod,S=Stage.S;if(!m)return;const[x,y]=pos(e);if(Stage.drag){Stage.drag.move&&Stage.drag.move(x,y);e.preventDefault()}else if(e.pointerType==='mouse'){const d=m.pick?m.pick(S,x,y):null;cv.style.cursor=d?'grab':(m.click?'pointer':'default');if(m.hover)m.hover(S,x,y)}});
+  const cv=Stage.cv;zBoot();
+  cv.addEventListener('pointerdown',e=>{const m=Stage.mod,S=Stage.S;if(!m)return;const[x,y]=pos(e);S.touched=true;hideHint();const d=m.pick?m.pick(S,x,y):null;if(d){Stage.drag=d;try{cv.setPointerCapture(e.pointerId)}catch(_){}cv.style.cursor='grabbing';if(d.move)d.move(x,y);e.preventDefault()}else{const P=!m.click&&e.button===0?zAt(x,y):null;if(P){Stage.drag=zPan(P,x,y);try{cv.setPointerCapture(e.pointerId)}catch(_){}cv.style.cursor='grabbing';e.preventDefault()}else if(m.click){m.click(S,x,y)}}});
+  cv.addEventListener('pointermove',e=>{const m=Stage.mod,S=Stage.S;if(!m)return;const[x,y]=pos(e);if(Stage.drag){Stage.drag.move&&Stage.drag.move(x,y);e.preventDefault()}else if(e.pointerType==='mouse'){const d=m.pick?m.pick(S,x,y):null;const zp=!d&&!m.click?zAt(x,y):null;cv.style.cursor=d||zp&&zp.zoomed?'grab':(m.click?'pointer':'default');if(m.hover)m.hover(S,x,y)}});
   const up=()=>{if(Stage.drag){Stage.drag.up&&Stage.drag.up();Stage.drag=null;cv.style.cursor='default'}};
   cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('pointerleave',()=>{if(Stage.mod&&Stage.mod.hover&&!Stage.drag)Stage.mod.hover(Stage.S,-1,-1)});
   document.addEventListener('keydown',e=>{const tg=e.target;if(document.querySelector('dialog[open]'))return;if(tg&&(tg.tagName==='INPUT'&&tg.type!=='range'&&tg.type!=='checkbox'||tg.tagName==='SELECT'||tg.tagName==='TEXTAREA'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;

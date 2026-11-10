@@ -46,6 +46,8 @@ Hver animasjon er ett kall til `M({...})` i en av filene i `assets/js/moduler/`.
   - `{type:'func', label, get(), set(S, f, tekst)}`: egen funksjon. Teksten tolkes trygt med `parseFx` i `core.js` (ingen `eval`).
 - `init`, `update`, `draw`: startverdier, simulering per bilde og tegning.
 
+Grafer som tegnes med `Plane(...)` og får akser med tall (`P.axes({xs, ys, ...})`), får automatisk knapper for å zoome ut og inn, gå tilbake til standardutsnittet og skrive inn egne verdier på aksene. Med mus kan man også holde Ctrl og rulle for å zoome, og dra i grafen for å flytte den. Avstanden mellom tallene på aksene tilpasser seg zoomen. Koden ligger i `core.js` (`ZV` og `Plane`) og `app.js` (`zUI` og de andre `z`-funksjonene). Bruk `P.X`, `P.Y`, `P.ix` og `P.iy` når du tegner og tolker klikk, så følger alt med når brukeren zoomer.
+
 Når du har lagt til eller endret en animasjon, kjør dette fra denne mappen (krever [Node.js](https://nodejs.org) 18 eller nyere):
 
 ```
