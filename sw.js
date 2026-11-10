@@ -1,6 +1,6 @@
 // Generert av verktoy/bygg.mjs – ikke rediger for hånd.
 // Offline-støtte: henter alltid fra nettet først, og bruker lagret kopi bare når nettet svikter.
-const VERSION = 'rfr-d7c2724dcd';
+const VERSION = 'rfr-6def9988ca';
 const PRECACHE = ["./",
   "index.html",
   "favicon.svg",
